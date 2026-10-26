@@ -79,8 +79,7 @@ a { color: var(--accent); }
 .split { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 32px; flex: 1; min-height: 0; }
 .stack .split { grid-template-columns: 1fr; }
 .draw { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; }
-.drawing { position: relative; flex: 1; min-height: 280px; border-radius: 12px; background: var(--chip); overflow: hidden; touch-action: none; cursor: grab; }
-.drawing:active { cursor: grabbing; }
+.drawing { position: relative; flex: 1; min-height: 280px; border-radius: 12px; background: var(--chip); overflow: hidden; touch-action: none; }
 .stack .drawing { flex: none; height: 300px; }
 .drawing svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .drawing .tag { position: absolute; left: 12px; top: 10px; font: 12px var(--mono); color: var(--muted); pointer-events: none; }
@@ -142,7 +141,10 @@ a { color: var(--accent); }
 .vocab { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 30px; flex: 1; min-height: 0; }
 .stack .vocab { grid-template-columns: 1fr; }
 .netbox { display: flex; flex-direction: column; gap: 10px; }
-.scene3d { height: 290px; border-radius: 12px; background: var(--chip); perspective: 900px; display: grid; place-items: center; overflow: hidden; }
+.scene3d { height: 290px; border-radius: 12px; background: var(--chip); perspective: 900px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; justify-items: center; overflow: hidden; }
+.scene3d .arrow { font: 12px var(--mono); color: var(--muted); }
+.scene3d .flat .net { transform: scale(.42); }
+.scene3d .cube .net { transform: translateY(10px) rotateX(58deg) rotateZ(-32deg) scale(.62); }
 .net { position: relative; width: 84px; height: 84px; transform-style: preserve-3d; transform: translateY(26px) rotateX(58deg) rotateZ(-32deg); }
 .face { position: absolute; width: 84px; height: 84px; transform-style: preserve-3d; background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--ink);
   display: grid; place-items: center; font: 600 13px var(--mono); color: #3a3226; backface-visibility: visible; }
@@ -262,14 +264,13 @@ tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
     </div>
     <div class="split">
       <div class="draw">
-        <div class="drawing" data-k="0"><svg role="img" aria-label="Drawing of a paper loop with no twist. Its top edge is red and its bottom edge is blue."></svg><span class="tag">0 half-twists · drag to turn</span></div>
+        <div class="drawing" data-k="0"><svg role="img" aria-label="Drawing of a paper loop with no twist. Its top edge is red and its bottom edge is blue."></svg><span class="tag">0 half-twists</span></div>
         <ul class="key">
           <li><i style="background:var(--paper)"></i>face toward you</li>
           <li><i style="background:var(--paper-back)"></i>face away from you</li>
           <li><i class="ln" style="background:#d9432a"></i>edge 1</li>
           <li><i class="ln" style="background:#2b55d8"></i>edge 2</li>
         </ul>
-        <p class="make"><b>Make one:</b> cut a 28 cm × 3 cm strip, draw a line down the middle, and tape the short ends together without turning either one over.</p>
       </div>
       <dl class="props">
         <div><dt>Made from</dt><dd>A 28 cm × 3 cm strip of paper, ends taped together without turning either one over.</dd></div>
@@ -291,13 +292,12 @@ tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
     </div>
     <div class="split">
       <div class="draw">
-        <div class="drawing" data-k="1"><svg role="img" aria-label="Drawing of a Möbius strip. Its single edge is drawn red all the way round."></svg><span class="tag">1 half-twist · drag to turn</span></div>
+        <div class="drawing" data-k="1"><svg role="img" aria-label="Drawing of a Möbius strip. Its single edge is drawn red all the way round."></svg><span class="tag">1 half-twist</span></div>
         <ul class="key">
           <li><i style="background:var(--paper)"></i>face toward you</li>
           <li><i style="background:var(--paper-back)"></i>face away from you</li>
           <li><i class="ln" style="background:#d9432a"></i>the only edge</li>
         </ul>
-        <p class="make"><b>Make one:</b> take the same strip, turn one end over (a half-twist), then tape. Trace the edge with a finger, then cut along the middle line.</p>
       </div>
       <dl class="props">
         <div><dt>Made from</dt><dd>The same 28 cm × 3 cm strip, with one end turned over (a half-twist, 180°) before taping.</dd></div>
@@ -345,7 +345,6 @@ tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
         <button class="btn" data-reveal>Show answer</button>
         <div class="ans" hidden>
           <p><b>Two loops, linked together.</b> The scissors go round twice. Out come a thin Möbius strip (28 cm × 1 cm) and a long two-sided loop (56 cm × 1 cm) with two full twists.</p>
-          <p>Try it with paper: draw two lines a third of the way in from each edge, then cut along one of them.</p>
         </div>
       </article>
     </div>
@@ -378,11 +377,7 @@ tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
           <figcaption><b>Möbius strip</b><span>arrows point opposite ways</span></figcaption>
           <svg viewBox="0 0 460 130" id="glueMob" role="img" aria-label="Flat strip; left arrow points up, right arrow points down. The letter F crosses the join and comes back mirrored."></svg>
         </figure>
-        <div class="row">
-          <button class="btn" id="fPlay">Pause</button>
-          <button class="btn" id="fStep">Move one lap</button>
-          <span class="status" id="fStatus" aria-live="polite"></span>
-        </div>
+        <p class="status" id="fStatus" style="margin:0"></p>
       </div>
     </div>
     <div class="foot"><span>One Side, One Edge</span><span>5 / 6</span></div>
@@ -397,17 +392,24 @@ tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
     <div class="vocab">
       <div class="netbox">
         <div class="scene3d" aria-hidden="true">
-          <div class="net" id="net" style="--fold: 0deg">
+          <div class="flat"><div class="net" style="--fold: 0deg">
             <div class="face base">base
               <div class="face l">1</div>
               <div class="face r">2</div>
               <div class="face u">3</div>
               <div class="face d">4<div class="face d">lid</div></div>
             </div>
-          </div>
+          </div></div>
+          <span class="arrow">folds to</span>
+          <div class="cube"><div class="net" style="--fold: 90deg">
+            <div class="face base">base
+              <div class="face l">1</div>
+              <div class="face r">2</div>
+              <div class="face u">3</div>
+              <div class="face d">4<div class="face d">lid</div></div>
+            </div>
+          </div></div>
         </div>
-        <div class="slider"><label for="fold">Fold the net</label><input type="range" id="fold" min="0" max="90" value="0"><output id="foldOut">0°</output></div>
-        <div class="tools"><button class="btn" id="foldBtn">Fold into a cube</button></div>
         <p>A <b>net</b> is a flat 2D pattern that folds into a 3D shape. Its area is the shape's <b>surface area</b>: for a cube with 3 cm edges, 6 × 3 × 3 = <b>54 cm²</b>.</p>
       </div>
       <div class="right">
@@ -606,17 +608,6 @@ tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
       }
       svg.innerHTML = out;
     }
-    // drag to turn the drawing
-    let drag = null;
-    box.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, yaw, pitch }; box.setPointerCapture(e.pointerId); });
-    box.addEventListener('pointermove', e => {
-      if (!drag) return;
-      yaw = drag.yaw + (e.clientX - drag.x) * 0.01;
-      pitch = clamp(drag.pitch + (e.clientY - drag.y) * 0.01, -1.4, 1.4);
-      draw();
-    });
-    const end = () => { drag = null; };
-    box.addEventListener('pointerup', end); box.addEventListener('pointercancel', end);
     new ResizeObserver(draw).observe(box);
     matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
     new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
@@ -650,9 +641,8 @@ tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
     }
     const items = [setup(document.getElementById('glueLoop'), false), setup(document.getElementById('glueMob'), true)];
     const yStart = Y0 + 26;                 // F starts above the centre line so the flip is easy to see
-    let pos = 0;                            // distance travelled, in laps
-    let playing = !reduced.matches, active = false, last = null, stepAnim = null;
-    const status = document.getElementById('fStatus'), play = document.getElementById('fPlay');
+    const pos = 1;                          // shown after one trip round the strip
+    const status = document.getElementById('fStatus');
 
     const WID = X1 - X0, START = 46;
     function draw() {
@@ -668,28 +658,10 @@ tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
         place(it.tail, xx + WID, crossings - 1);    // the part of the letter not yet through the join
         it.ghost.setAttribute('y', yStart);
       });
-      status.textContent = crossings === 0 ? 'Watch the F cross the join at the right-hand end.'
-        : crossings % 2 === 1 ? `Crossed the join ${crossings === 1 ? 'once' : crossings + ' times'}: on the Möbius strip the F is mirrored.`
-        : `Crossed the join ${crossings} times: both Fs are the right way round again.`;
+      status.textContent = 'Grey F: where it starts. Red F: the same F after one trip round. On the loop it lands back on the grey F; on the Möbius strip it comes back mirrored.';
     }
-    function tick(now) {
-      if (active && playing && !stepAnim) {
-        if (last !== null) pos += (now - last) / 4200;
-        if (pos >= 4) pos -= 4;
-        draw();
-      }
-      last = now;
-    }
-    play.addEventListener('click', () => { playing = !playing; play.textContent = playing ? 'Pause' : 'Play'; });
-    document.getElementById('fStep').addEventListener('click', () => {
-      playing = false; play.textContent = 'Play';
-      if (stepAnim) stepAnim.stop();
-      const from = pos, to = Math.floor(pos + 1e-6) + 1;
-      stepAnim = tweenNum(from, to, reduced.matches ? 1 : 1600, v => { pos = v % 4; draw(); }, () => { stepAnim = null; });
-    });
-    play.textContent = playing ? 'Pause' : 'Play';
     draw();
-    return { tick, setActive(on) { active = on; last = null; } };
+    return { setActive() {} };
   })();
 
   // =================== question reveals (slide 4) ===================
@@ -706,34 +678,12 @@ tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
     });
   });
 
-  // =================== folding cube net (slide 6) ===================
-  {
-    const net = document.getElementById('net'), range = document.getElementById('fold'), out = document.getElementById('foldOut'), btn = document.getElementById('foldBtn');
-    let anim = null;
-    const set = v => { net.style.setProperty('--fold', v + 'deg'); range.value = Math.round(v); out.textContent = Math.round(v) + '°'; btn.textContent = v > 45 ? 'Unfold to the net' : 'Fold into a cube'; };
-    range.addEventListener('input', () => { if (anim) anim.stop(); set(+range.value); });
-    btn.addEventListener('click', () => {
-      if (anim) anim.stop();
-      const from = +range.value, to = from > 45 ? 0 : 90;
-      if (M && M.animate && !reduced.matches) {
-        const c = M.animate(from, to, { type: 'spring', duration: 0.9, bounce: 0.15, onUpdate: set });
-        anim = { stop: () => c.stop() };
-      } else set(to);
-    });
-    set(0);
-  }
-
   // =================== start ===================
   const drawings = [...document.querySelectorAll('.drawing')].map(makeDrawing);
-  function loop(now) {
-    orient.tick(now);
-    requestAnimationFrame(loop);
-  }
   addEventListener('resize', layout);
   layout();
   const start = slides.findIndex(s => '#' + s.id === location.hash);
   go(start < 0 ? 0 : start);
-  requestAnimationFrame(loop);
 })();
 </script>
 </body>
