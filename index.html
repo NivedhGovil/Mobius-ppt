@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>One Side, One Edge</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
 <style>
 /* Layout: 1280×720 slides scaled to fit the window, a slim control bar below; on phones the slides stack and scroll. */
 :root {
@@ -25,16 +22,6 @@
   --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --ease-out: cubic-bezier(.22, 1, .36, 1);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0c0f14; --slide: #161b22; --ink: #e5eaf0; --muted: #8f9aa9; --line: #29313c; --chip: #1f2630;
-    --accent: #84a0ff; --cut: #ff6c4f; --paper: #d9cba6; --paper-back: #a8996f; color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0c0f14; --slide: #161b22; --ink: #e5eaf0; --muted: #8f9aa9; --line: #29313c; --chip: #1f2630;
-  --accent: #84a0ff; --cut: #ff6c4f; --paper: #d9cba6; --paper-back: #a8996f; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
@@ -189,6 +176,35 @@ tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
 @media (prefers-reduced-motion: reduce) {
   .btn { transition: none; }
 }
+/* ---------- standard lecture look ---------- */
+:root {
+  --bg: #e4e4e4; --slide: #ffffff; --ink: #111111; --muted: #444444; --line: #9a9a9a; --chip: #ffffff;
+  --accent: #1a4fb5; --cut: #c0392b; --paper: #f1f1f1; --paper-back: #c9c9c9;
+  --display: Arial, Helvetica, sans-serif; --body: Arial, Helvetica, sans-serif; --mono: Arial, Helvetica, sans-serif;
+  color-scheme: light;
+}
+.deck.paged .slide { border-radius: 0; box-shadow: 0 1px 4px rgb(0 0 0 / .25); }
+.deck.stack .slide { border-radius: 0; }
+.eyebrow { font: 400 15px/1 var(--body); letter-spacing: 0; text-transform: none; color: var(--muted); }
+h2 { font: 700 38px/1.15 var(--body); letter-spacing: 0; border-bottom: 2px solid var(--ink); padding-bottom: 10px; max-width: none; }
+.stack h2 { font-size: 26px; }
+.def, .q, .kinds div, .panel, .glue figure, .drawing, .scene3d { background: var(--slide); border: 1px solid var(--line); border-radius: 0; }
+.def h3 { font: 700 20px var(--body); }
+.def .note { font: 13px/1.45 var(--body); }
+.big { font: 700 22px/1 var(--body); color: var(--ink); }
+.props dt, th, .kinds h4, .panel h4, .glue figcaption, .key, .status, .drawing .tag, .scene3d .arrow { font-family: var(--body); letter-spacing: 0; text-transform: none; }
+.props dt { font-weight: 700; color: var(--ink); }
+.props dd b { font: 700 16px var(--body); }
+th { font-size: 14px; font-weight: 700; color: var(--ink); }
+tr.hl td { background: #f3f3f3; }
+.q .n { font: 700 20px var(--body); color: var(--ink); }
+.q h3 { font-weight: 700; font-size: 20px; }
+.ansl .q h3 { font-size: 18px; }
+.foot { font: 12px var(--body); }
+.q .ans { border-radius: 0; box-shadow: none; border-top: 1px solid var(--line); padding: 12px 0 0; }
+.fact { border-left-color: var(--ink); }
+.bar, .bar .btn { font-family: var(--body); }
+.prog i { background: var(--ink); }
 </style>
 </head>
 <body>
@@ -253,7 +269,7 @@ tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
         <p class="note">Count boundary pieces: each separate closed loop of edge is one piece.</p>
       </article>
     </div>
-    <div class="foot"><span>One Side, One Edge</span><span>1 / 6</span></div>
+    <div class="foot"><span>One Side, One Edge</span><span class="pg"></span></div>
   </section>
 
   <!-- ============ 2. Ordinary loop ============ -->
@@ -278,10 +294,10 @@ tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
         <div><dt>Edges</dt><dd><span class="big">2</span>two separate circles, each 28 cm long. The boundary is in two pieces.</dd></div>
         <div><dt>Walk test</dt><dd>Walking along the middle line, an ant is home after <b>one lap</b> (28 cm), still on the face it started on.</dd></div>
         <div><dt>Cut the middle</dt><dd>Two separate loops, each 28 cm × 1.5 cm. They fall apart.</dd></div>
-        <div><dt>Orientable?</dt><dd>Yes. More on slide 5.</dd></div>
+        <div><dt>Orientable?</dt><dd>Yes. See slide 6.</dd></div>
       </dl>
     </div>
-    <div class="foot"><span>One Side, One Edge</span><span>2 / 6</span></div>
+    <div class="foot"><span>One Side, One Edge</span><span class="pg"></span></div>
   </section>
 
   <!-- ============ 3. Möbius strip ============ -->
@@ -305,56 +321,76 @@ tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
         <div><dt>Edges</dt><dd><span class="big">1</span>a single closed curve 56 cm long. The two 28 cm edges of the strip have joined into one.</dd></div>
         <div><dt>Walk test</dt><dd>An ant walking the middle line needs <b>two laps</b> (56 cm) to get home. After one lap it is right behind its start, on the other face of the paper.</dd></div>
         <div><dt>Cut the middle</dt><dd>Still one piece: a loop 56 cm × 1.5 cm with two full twists. It has two sides, so it is no longer a Möbius strip.</dd></div>
-        <div><dt>Orientable?</dt><dd>No. More on slide 5.</dd></div>
+        <div><dt>Orientable?</dt><dd>No. See slide 6.</dd></div>
       </dl>
     </div>
-    <div class="foot"><span>One Side, One Edge</span><span>3 / 6</span></div>
+    <div class="foot"><span>One Side, One Edge</span><span class="pg"></span></div>
   </section>
 
   <!-- ============ 4. Questions ============ -->
   <section class="slide" id="questions" data-title="Questions">
     <div>
-      <span class="eyebrow">4 · Predict, then test</span>
-      <h2>Write your answer down before you reveal it</h2>
+      <span class="eyebrow">4 · Questions</span>
+      <h2>Questions: write your answers in your book</h2>
     </div>
     <div class="qs">
       <article class="q">
-        <span class="n">1</span>
+        <span class="n">Q1</span>
         <h3>How many sides and edges does a Möbius strip have?</h3>
         <p class="think">Run a finger along the edge without lifting it. Where do you end up?</p>
-        <button class="btn" data-reveal>Show answer</button>
-        <div class="ans" hidden>
+      </article>
+      <article class="q">
+        <span class="n">Q2</span>
+        <h3>What happens when it is cut along the centre line?</h3>
+        <p class="think">Does it fall into two pieces like the ordinary loop?</p>
+      </article>
+      <article class="q">
+        <span class="n">Q3</span>
+        <h3>What if you cut one third of the way in from the edge instead?</h3>
+        <p class="think">How many times do the scissors go round before they meet the start?</p>
+      </article>
+    </div>
+    <div class="foot"><span>One Side, One Edge</span><span class="pg"></span></div>
+  </section>
+
+  <!-- ============ 5. Answers ============ -->
+  <section class="slide ansl" id="answers" data-title="Answers">
+    <div>
+      <span class="eyebrow">5 · Answers</span>
+      <h2>Answers</h2>
+    </div>
+    <div class="qs">
+      <article class="q">
+        <span class="n">A1</span>
+        <h3>How many sides and edges does a Möbius strip have?</h3>
+        <div class="ans">
           <p><b>One side and one edge.</b></p>
           <p>Your finger travels both long edges of the original strip, 56 cm in all, before it gets back to the start.</p>
         </div>
       </article>
       <article class="q">
-        <span class="n">2</span>
+        <span class="n">A2</span>
         <h3>What happens when it is cut along the centre line?</h3>
-        <p class="think">Does it fall into two pieces like the ordinary loop?</p>
-        <button class="btn" data-reveal>Show answer</button>
-        <div class="ans" hidden>
+        <div class="ans">
           <p><b>It stays in one piece:</b> a single loop twice as long (56 cm) and half as wide (1.5 cm), with two full twists.</p>
           <p>The new loop has two sides and two edges, so it is no longer a Möbius strip.</p>
         </div>
       </article>
       <article class="q">
-        <span class="n">3</span>
+        <span class="n">A3</span>
         <h3>What if you cut one third of the way in from the edge instead?</h3>
-        <p class="think">How many times do the scissors go round before they meet the start?</p>
-        <button class="btn" data-reveal>Show answer</button>
-        <div class="ans" hidden>
+        <div class="ans">
           <p><b>Two loops, linked together.</b> The scissors go round twice. Out come a thin Möbius strip (28 cm × 1 cm) and a long two-sided loop (56 cm × 1 cm) with two full twists.</p>
         </div>
       </article>
     </div>
-    <div class="foot"><span>One Side, One Edge</span><span>4 / 6</span></div>
+    <div class="foot"><span>One Side, One Edge</span><span class="pg"></span></div>
   </section>
 
-  <!-- ============ 5. Orientability ============ -->
+  <!-- ============ 6. Orientability ============ -->
   <section class="slide" id="orientability" data-title="Orientability">
     <div>
-      <span class="eyebrow">5 · Orientable and non-orientable</span>
+      <span class="eyebrow">6 · Orientable and non-orientable</span>
       <h2>Can clockwise stay clockwise everywhere?</h2>
     </div>
     <div class="orient">
@@ -380,13 +416,13 @@ tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
         <p class="status" id="fStatus" style="margin:0"></p>
       </div>
     </div>
-    <div class="foot"><span>One Side, One Edge</span><span>5 / 6</span></div>
+    <div class="foot"><span>One Side, One Edge</span><span class="pg"></span></div>
   </section>
 
   <!-- ============ 6. Vocabulary ============ -->
   <section class="slide" id="vocabulary" data-title="Geometry vocabulary">
     <div>
-      <span class="eyebrow">6 · Faces, surfaces, edges and nets</span>
+      <span class="eyebrow">7 · Faces, surfaces, edges and nets</span>
       <h2>Using the vocabulary in 2D and 3D</h2>
     </div>
     <div class="vocab">
@@ -450,20 +486,19 @@ tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
         </div>
       </div>
     </div>
-    <div class="foot"><span>One Side, One Edge</span><span>6 / 6</span></div>
+    <div class="foot"><span>One Side, One Edge</span><span class="pg"></span></div>
   </section>
 </main>
 
 <nav class="bar" id="bar" aria-label="Slide controls">
   <div class="prog"><i id="prog"></i></div>
   <button class="btn" id="prev" aria-label="Previous slide">← Prev</button>
-  <span class="count" id="count">1 / 6</span>
+  <span class="count" id="count"></span>
   <button class="btn" id="next" aria-label="Next slide">Next →</button>
   <span class="title" id="slideTitle"></span>
   <span class="keys">← → keys · Home / End</span>
 </nav>
 
-<script src="https://cdn.jsdelivr.net/npm/motion@11.11.17/dist/motion.js"></script>
 <script>
 (() => {
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
@@ -509,6 +544,7 @@ tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
   function go(i) {
     cur = clamp(i, 0, slides.length - 1);
     slides.forEach((s, j) => { s.classList.toggle('on', j === cur); s.setAttribute('aria-hidden', String(deck.classList.contains('paged') && j !== cur)); });
+    slides.forEach((sl, j) => { const pg = sl.querySelector('.pg'); if (pg) pg.textContent = `${j + 1} / ${slides.length}`; });
     document.getElementById('count').textContent = `${cur + 1} / ${slides.length}`;
     document.getElementById('slideTitle').textContent = slides[cur].dataset.title;
     document.getElementById('prog').style.width = `${((cur + 1) / slides.length) * 100}%`;
@@ -663,20 +699,6 @@ tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
     draw();
     return { setActive() {} };
   })();
-
-  // =================== question reveals (slide 4) ===================
-  document.querySelectorAll('[data-reveal]').forEach(btn => {
-    const ans = btn.nextElementSibling;
-    btn.addEventListener('click', () => {
-      const show = ans.hidden;
-      ans.hidden = !show;
-      btn.textContent = show ? 'Hide answer' : 'Show answer';
-      if (show && M && M.animate && !reduced.matches) {
-        M.animate(ans, { opacity: [0, 1], transform: ['translateY(8px)', 'translateY(0px)'], filter: ['blur(4px)', 'blur(0px)'] },
-          { type: 'spring', duration: 0.45, bounce: 0 });
-      }
-    });
-  });
 
   // =================== start ===================
   const drawings = [...document.querySelectorAll('.drawing')].map(makeDrawing);
