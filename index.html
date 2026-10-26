@@ -3,22 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Möbius Bench</title>
+<title>One Side, One Edge</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
 <style>
-/* Layout: one-screen bench. 3D stage fills the left, a narrow lab-notebook rail on the right; stacks on phones. */
+/* Layout: 1280×720 slides scaled to fit the window, a slim control bar below; on phones the slides stack and scroll. */
 :root {
-  --bg: #e9edf1;
-  --rail: #f8f9fb;
+  --bg: #dfe4ea;
+  --slide: #f8f9fb;
   --ink: #18202b;
   --muted: #5a6574;
   --line: #d3dae2;
+  --chip: #eef1f5;
   --accent: #2b55d8;
   --cut: #d9432a;
-  --chip: #eef1f5;
+  --paper: #efe3c4;
+  --paper-back: #d8c79c;
   --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -26,690 +28,712 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #11151b; --rail: #181d25; --ink: #e5eaf0; --muted: #8f9aa9; --line: #29313c;
-    --accent: #84a0ff; --cut: #ff6c4f; --chip: #212833; color-scheme: dark;
+    --bg: #0c0f14; --slide: #161b22; --ink: #e5eaf0; --muted: #8f9aa9; --line: #29313c; --chip: #1f2630;
+    --accent: #84a0ff; --cut: #ff6c4f; --paper: #d9cba6; --paper-back: #a8996f; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #11151b; --rail: #181d25; --ink: #e5eaf0; --muted: #8f9aa9; --line: #29313c;
-  --accent: #84a0ff; --cut: #ff6c4f; --chip: #212833; color-scheme: dark;
+  --bg: #0c0f14; --slide: #161b22; --ink: #e5eaf0; --muted: #8f9aa9; --line: #29313c; --chip: #1f2630;
+  --accent: #84a0ff; --cut: #ff6c4f; --paper: #d9cba6; --paper-back: #a8996f; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--body); }
-.app { display: grid; grid-template-columns: minmax(0, 1fr) 360px; height: 100%; }
-.stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; touch-action: none; }
-.stage canvas { display: block; width: 100%; height: 100%; outline: none; }
-.hud {
-  position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); bottom: 14px; right: 16px;
-  display: flex; gap: 12px; flex-wrap: wrap; align-items: center; pointer-events: none;
-  font: 12px/1.4 var(--mono); color: var(--muted);
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 var(--body); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- deck modes ---------- */
+.deck.paged { position: fixed; inset: 0 0 56px 0; overflow: hidden; }
+.deck.paged .slide {
+  position: absolute; left: 50%; top: 50%; width: 1280px; height: 720px;
+  transform: translate(-50%, -50%) scale(var(--s, 1)); visibility: hidden;
+  border-radius: 14px; box-shadow: 0 1px 2px rgb(0 0 0 / .08), 0 12px 40px rgb(0 0 0 / .12);
 }
-.hud .live { color: var(--cut); }
-.callout {
-  position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); top: 16px; max-width: min(440px, calc(100% - 32px));
-  padding: 10px 14px; border-radius: 10px; background: var(--rail); border: 1px solid var(--line);
-  font-size: 13.5px; line-height: 1.45; transition: opacity .32s var(--ease-out), transform .32s var(--ease-out), filter .32s var(--ease-out);
-}
-.callout[data-off] { opacity: 0; transform: translateY(-6px); filter: blur(2px); pointer-events: none; }
-.rail {
-  background: var(--rail); border-left: 1px solid var(--line); overflow-y: auto; min-width: 0;
-  padding-block: 22px 28px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px));
-  display: flex; flex-direction: column; gap: 22px;
-}
-h1 { font: 700 30px/1.05 var(--display); letter-spacing: -.01em; margin: 0; text-wrap: balance; }
-.lede { margin: 6px 0 0; color: var(--muted); max-width: 34em; }
-section { display: flex; flex-direction: column; gap: 10px; }
-.label { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: .09em; color: var(--muted); }
-.seg { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; padding: 3px; background: var(--chip); border-radius: 9px; }
-.seg button { border: 0; background: transparent; color: var(--ink); font: 500 14px var(--mono); padding: 7px 0; border-radius: 7px; cursor: pointer; }
-.seg button[aria-pressed="true"] { background: var(--rail); box-shadow: 0 1px 2px rgb(0 0 0 / .12), 0 0 0 1px var(--line); }
-.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
-.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.deck.paged .slide.on { visibility: visible; }
+.deck.stack { display: flex; flex-direction: column; gap: 16px; padding-block: 16px 32px;
+  padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
+.deck.stack .slide { position: relative; border-radius: 12px; }
+
+.slide { background: var(--slide); padding: 44px 60px 56px; display: flex; flex-direction: column; gap: 22px; overflow: hidden; }
+.stack .slide { padding: 24px 18px 44px; gap: 18px; }
+.eyebrow { font: 500 13px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--cut); }
+h2 { font: 700 44px/1.04 var(--display); letter-spacing: -.015em; margin: 8px 0 0; text-wrap: balance; max-width: 22em; }
+.stack h2 { font-size: 30px; }
+.sub { margin: 8px 0 0; color: var(--muted); font-size: 18px; max-width: 60ch; }
+.stack .sub { font-size: 16px; }
+.foot { position: absolute; left: 60px; right: 60px; bottom: 18px; display: flex; justify-content: space-between; font: 12px var(--mono); color: var(--muted); }
+.stack .foot { left: 18px; right: 18px; bottom: 14px; }
+.foot a { color: inherit; }
+a { color: var(--accent); }
+
+/* ---------- slide 1: definitions ---------- */
+.defs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; flex: 1; min-height: 0; }
+.stack .defs { grid-template-columns: 1fr; }
+.def { display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 12px; background: var(--chip); min-width: 0; }
+.def svg { width: 100%; height: 108px; display: block; }
+.def h3 { font: 700 24px/1.1 var(--display); margin: 4px 0 0; }
+.def p { margin: 0; font-size: 15px; line-height: 1.45; }
+.def .eg { color: var(--muted); font-size: 13.5px; }
+.def .note { margin-top: auto; font: 12px/1.45 var(--mono); color: var(--muted); border-top: 1px solid var(--line); padding-top: 8px; }
+
+/* ---------- slides 2 & 3: drawing + properties ---------- */
+.split { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 32px; flex: 1; min-height: 0; }
+.stack .split { grid-template-columns: 1fr; }
+.draw { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; }
+.drawing { position: relative; flex: 1; min-height: 280px; border-radius: 12px; background: var(--chip); overflow: hidden; touch-action: none; cursor: grab; }
+.drawing:active { cursor: grabbing; }
+.stack .drawing { flex: none; height: 300px; }
+.drawing svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.drawing .tag { position: absolute; left: 12px; top: 10px; font: 12px var(--mono); color: var(--muted); pointer-events: none; }
+.key { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 12.5px var(--mono); color: var(--muted); margin: 0; padding: 0; list-style: none; }
+.key li { display: flex; align-items: center; gap: 6px; }
+.key i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .2); }
+.key i.ln { height: 4px; border-radius: 2px; box-shadow: none; }
+.make { margin: 0; padding: 10px 14px; border-radius: 10px; background: var(--chip); font-size: 14px; line-height: 1.45; }
+.make b { font-weight: 600; }
 .btn {
-  appearance: none; border: 1px solid var(--line); background: var(--rail); color: var(--ink);
-  font: 500 13.5px/1.25 var(--body); padding: 10px 12px; border-radius: 9px; cursor: pointer; text-align: left;
-  transition: transform .14s var(--ease-out), background-color .14s, border-color .14s;
+  appearance: none; border: 1px solid var(--line); background: var(--slide); color: var(--ink);
+  font: 500 14px/1.2 var(--body); padding: 9px 13px; border-radius: 9px; cursor: pointer;
+  transition: transform .14s var(--ease-out), border-color .14s;
 }
 .btn:hover:not(:disabled) { border-color: var(--muted); }
 .btn:active:not(:disabled) { transform: scale(.97); }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
-.btn.primary { background: var(--cut); border-color: var(--cut); color: #fff; }
-.btn.primary:hover:not(:disabled) { border-color: var(--ink); }
-.btn small { display: block; font: 400 11.5px/1.3 var(--mono); opacity: .8; margin-top: 2px; }
-.btn.wide { grid-column: 1 / -1; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.slider { display: grid; grid-template-columns: 88px minmax(0, 1fr) 44px; align-items: center; gap: 10px; font-size: 13px; }
-.slider output { font: 12px var(--mono); color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; }
+.props { display: flex; flex-direction: column; gap: 0; margin: 0; min-width: 0; }
+.props div { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; padding: 11px 0; border-top: 1px solid var(--line); }
+.stack .props div { grid-template-columns: 1fr; gap: 2px; }
+.props div:last-child { border-bottom: 1px solid var(--line); }
+.props dt { font: 500 12.5px/1.5 var(--mono); text-transform: uppercase; letter-spacing: .07em; color: var(--muted); padding-top: 2px; }
+.props dd { margin: 0; font-size: 16px; line-height: 1.45; }
+.props dd b { font: 700 19px/1 var(--display); }
+.big { font: 700 34px/1 var(--display); color: var(--cut); margin-right: 6px; }
+
+/* ---------- slide 4: questions ---------- */
+.qs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; flex: 1; min-height: 0; }
+.stack .qs { grid-template-columns: 1fr; }
+.q { display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 14px; background: var(--chip); min-width: 0; }
+.q .n { font: 700 54px/0.9 var(--display); color: var(--cut); }
+.q h3 { font: 600 22px/1.25 var(--body); margin: 0; text-wrap: balance; }
+.q .think { font-size: 14.5px; color: var(--muted); margin: 0; }
+.q .btn { align-self: flex-start; margin-top: auto; }
+.q .ans { background: var(--slide); border-radius: 10px; padding: 14px 16px; font-size: 15.5px; line-height: 1.5; box-shadow: 0 0 0 1px var(--line); }
+.q .ans p { margin: 0; }
+.q .ans p + p { margin-top: 6px; color: var(--muted); font-size: 14px; }
+
+/* ---------- slide 5: orientability ---------- */
+.orient { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: 36px; flex: 1; min-height: 0; }
+.stack .orient { grid-template-columns: 1fr; }
+.orient .text { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.orient .text p { margin: 0; font-size: 17px; }
+.kinds { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.kinds div { padding: 12px 14px; border-radius: 10px; background: var(--chip); }
+.kinds h4 { margin: 0 0 4px; font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.kinds ul { margin: 0; padding-left: 18px; font-size: 15px; }
+.fact { font-size: 14.5px !important; color: var(--muted); border-left: 2px solid var(--cut); padding-left: 12px; }
+.glue { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.glue figure { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--chip); }
+.glue figcaption { font: 500 12.5px var(--mono); color: var(--muted); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.glue figcaption b { color: var(--ink); font-weight: 500; }
+.glue svg { display: block; width: 100%; height: auto; margin-top: 6px; overflow: visible; }
+.glue .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.status { font: 13px var(--mono); color: var(--muted); }
+
+/* ---------- slide 6: vocabulary ---------- */
+.vocab { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 30px; flex: 1; min-height: 0; }
+.stack .vocab { grid-template-columns: 1fr; }
+.netbox { display: flex; flex-direction: column; gap: 10px; }
+.scene3d { height: 290px; border-radius: 12px; background: var(--chip); perspective: 900px; display: grid; place-items: center; overflow: hidden; }
+.net { position: relative; width: 84px; height: 84px; transform-style: preserve-3d; transform: translateY(26px) rotateX(58deg) rotateZ(-32deg); }
+.face { position: absolute; width: 84px; height: 84px; transform-style: preserve-3d; background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--ink);
+  display: grid; place-items: center; font: 600 13px var(--mono); color: #3a3226; backface-visibility: visible; }
+.face.base { left: 0; top: 0; background: var(--paper-back); }
+.face.l { left: -100%; top: 0; transform-origin: right center; transform: rotateY(var(--fold)); }
+.face.r { left: 100%; top: 0; transform-origin: left center; transform: rotateY(calc(-1 * var(--fold))); }
+.face.u { top: -100%; left: 0; transform-origin: center bottom; transform: rotateX(calc(-1 * var(--fold))); }
+.face.d { top: 100%; left: 0; transform-origin: center top; transform: rotateX(var(--fold)); }
+.netbox .slider { display: grid; grid-template-columns: auto minmax(0, 1fr) 44px; gap: 10px; align-items: center; font-size: 14px; }
+.netbox output { font: 12.5px var(--mono); color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
 input[type=range] { width: 100%; accent-color: var(--cut); }
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-.stats div { background: var(--rail); padding: 9px 10px; }
-.stats dt { font: 500 10.5px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.stats dd { margin: 6px 0 0; font: 600 20px/1 var(--display); font-variant-numeric: tabular-nums; }
-.pieces { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.pieces li { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 10px; align-items: start; animation: rise .36s var(--ease-out) both; }
-.pieces .sw { width: 14px; height: 14px; border-radius: 3px; margin-top: 3px; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .15); }
-.pieces b { font-weight: 600; }
-.pieces span { display: block; font: 12px/1.45 var(--mono); color: var(--muted); }
-.link { font-size: 13px; margin: 0; }
-@keyframes rise { from { opacity: 0; transform: translateY(4px); filter: blur(2px); } }
-.foot { margin-top: auto; font-size: 12px; color: var(--muted); }
-.foot p { margin: 0; }
-@media (max-width: 820px) {
-  .app { grid-template-columns: 1fr; grid-template-rows: 56svh auto; height: auto; }
-  html, body { height: auto; }
-  .rail { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
-  h1 { font-size: 26px; }
+.netbox p { margin: 0; font-size: 14.5px; }
+.right { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 500 12px var(--mono); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+td:first-child { font-weight: 600; white-space: nowrap; }
+tr.hl td { background: color-mix(in srgb, var(--cut) 9%, transparent); }
+.cols2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.stack .cols2 { grid-template-columns: 1fr; }
+.panel { padding: 12px 14px; border-radius: 12px; background: var(--chip); min-width: 0; }
+.panel h4 { margin: 0 0 6px; font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel p, .panel ul { margin: 0; font-size: 14.5px; }
+.panel ul { padding-left: 18px; }
+.panel svg { display: block; width: 100%; height: auto; margin: 6px 0; }
+
+/* ---------- control bar ---------- */
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; height: 56px; display: flex; align-items: center; gap: 14px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px); font: 13px var(--mono); color: var(--muted);
 }
-@media (max-width: 380px) { .btns { grid-template-columns: 1fr; } .stats { grid-template-columns: repeat(2, 1fr); } }
+.bar .btn { font: 500 13px var(--mono); padding: 7px 12px; }
+.bar .count { font-variant-numeric: tabular-nums; min-width: 4.5em; }
+.bar .title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prog { position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--line); }
+.prog i { display: block; height: 100%; background: var(--cut); width: 0; }
+.bar[hidden] { display: none; }
+.keys { white-space: nowrap; }
+@media (max-width: 900px) { .keys { display: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .callout, .btn { transition: opacity .2s linear; }
-  .callout[data-off] { transform: none; filter: none; }
-  .pieces li { animation: none; }
+  .btn { transition: none; }
 }
 </style>
 </head>
 <body>
-<div class="app">
-  <div class="stage" id="stage">
-    <canvas id="c" aria-label="3D view of the paper strip. Drag to rotate, scroll or pinch to zoom."></canvas>
-    <div class="callout" id="callout" data-off></div>
-    <div class="hud"><span>drag to orbit · scroll to zoom</span><span class="live" id="hudLive"></span></div>
-  </div>
+<main class="deck" id="deck">
 
-  <aside class="rail">
-    <header>
-      <h1>Möbius Bench</h1>
-      <p class="lede">A paper loop given one half-twist has a single side and a single edge. Twist it, cut it, pull the pieces apart, and see what you really get.</p>
-    </header>
+  <!-- ============ 1. Definitions ============ -->
+  <section class="slide" id="definitions" data-title="Definitions">
+    <div>
+      <span class="eyebrow">1 · Definitions</span>
+      <h2>Five words for talking about paper shapes</h2>
+    </div>
+    <div class="defs">
+      <article class="def">
+        <svg viewBox="0 0 200 108" aria-hidden="true">
+          <path d="M40 22 H190 L160 92 H10 Z" fill="var(--paper)" stroke="var(--ink)" stroke-width="1.5"/>
+          <g stroke="var(--ink)" stroke-opacity=".25" stroke-width="1"><path d="M70 22 L40 92 M100 22 L70 92 M130 22 L100 92 M160 22 L130 92 M32 40 H182 M24 58 H174 M17 75 H167"/></g>
+          <g stroke="var(--accent)" stroke-width="2" fill="none" stroke-linecap="round"><path d="M190 22 l9 -8 m-7 0 h7 v7"/><path d="M10 92 l-8 8 m0 -7 v7 h7"/></g>
+        </svg>
+        <h3>Plane</h3>
+        <p>A perfectly flat surface that goes on forever in every direction. It has length and width but no thickness.</p>
+        <p class="eg">A tabletop is a small piece of a plane.</p>
+      </article>
+      <article class="def">
+        <svg viewBox="0 0 200 108" aria-hidden="true">
+          <path d="M10 70 C50 20, 90 100, 130 52 S180 30, 190 46 L178 84 C160 66, 140 80, 118 92 S50 70, 22 100 Z" fill="var(--paper)" stroke="var(--ink)" stroke-width="1.5"/>
+          <circle cx="108" cy="72" r="13" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="3 3"/>
+        </svg>
+        <h3>Surface</h3>
+        <p>A two-dimensional object that can bend and curve in space: the skin of a ball, a sheet of paper, a paper loop.</p>
+        <p class="eg">Zoom in on any small patch and it looks like a piece of plane.</p>
+      </article>
+      <article class="def">
+        <svg viewBox="0 0 200 108" aria-hidden="true">
+          <path d="M20 30 H150 C178 30, 186 58, 166 76 L60 76 Z" fill="var(--paper)" stroke="var(--ink)" stroke-width="1.5"/>
+          <path d="M150 30 C178 30, 186 58, 166 76 C176 56, 166 42, 150 44 Z" fill="var(--paper-back)" stroke="var(--ink)" stroke-width="1.5"/>
+          <text x="70" y="58" font-family="IBM Plex Mono, monospace" font-size="12" fill="#3a3226">front</text>
+          <text x="128" y="98" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--muted)">back ↗</text>
+        </svg>
+        <h3>Side</h3>
+        <p>A region you can travel all over without crossing an edge. A sheet of paper has two sides: front and back.</p>
+        <p class="note">In a polygon, “side” means a line segment. Today it means a side of a surface.</p>
+      </article>
+      <article class="def">
+        <svg viewBox="0 0 200 108" aria-hidden="true">
+          <path d="M30 24 H170 V86 H30 Z" fill="var(--paper)" stroke="var(--ink)" stroke-width="1.5"/>
+          <path d="M30 86 H170" stroke="var(--cut)" stroke-width="4" stroke-linecap="round"/>
+          <text x="74" y="104" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--cut)">an edge</text>
+        </svg>
+        <h3>Edge</h3>
+        <p>A line where a surface stops. On a solid such as a cube, it is also a line where two faces meet.</p>
+        <p class="eg">A rectangle of paper has four edges.</p>
+      </article>
+      <article class="def">
+        <svg viewBox="0 0 200 108" aria-hidden="true">
+          <ellipse cx="100" cy="64" rx="80" ry="28" fill="var(--paper-back)" stroke="var(--cut)" stroke-width="3.5"/>
+          <path d="M20 64 V40 A80 28 0 0 1 180 40 V64 A80 28 0 0 0 20 64 Z" fill="var(--paper)" stroke="none"/>
+          <ellipse cx="100" cy="40" rx="80" ry="28" fill="none" stroke="var(--cut)" stroke-width="3.5"/>
+          <path d="M20 40 V64 M180 40 V64" stroke="var(--ink)" stroke-width="1.5"/>
+        </svg>
+        <h3>Boundary</h3>
+        <p>All of a surface's edges taken together. The boundary of a paper loop is two circles. The skin of a ball has no boundary.</p>
+        <p class="note">Count boundary pieces: each separate closed loop of edge is one piece.</p>
+      </article>
+    </div>
+    <div class="foot"><span>One Side, One Edge</span><span>1 / 6</span></div>
+  </section>
 
-    <section aria-labelledby="l-twist">
-      <span class="label" id="l-twist">Half-twists before taping the ends</span>
-      <div class="seg" id="twists" role="group" aria-labelledby="l-twist"></div>
-      <p class="hint" id="twistHint"></p>
-    </section>
-
-    <section aria-labelledby="l-cut">
-      <span class="label" id="l-cut">Scissors</span>
-      <div class="btns">
-        <button class="btn primary" id="cutMid">Cut down the middle<small>halfway across</small></button>
-        <button class="btn primary" id="cutThird">Cut a third in<small>⅓ of the width</small></button>
+  <!-- ============ 2. Ordinary loop ============ -->
+  <section class="slide" id="loop" data-title="The ordinary loop">
+    <div>
+      <span class="eyebrow">2 · The ordinary loop</span>
+      <h2>Tape the ends with no twist: two sides, two edges</h2>
+    </div>
+    <div class="split">
+      <div class="draw">
+        <div class="drawing" data-k="0"><svg role="img" aria-label="Drawing of a paper loop with no twist. Its top edge is red and its bottom edge is blue."></svg><span class="tag">0 half-twists · drag to turn</span></div>
+        <ul class="key">
+          <li><i style="background:var(--paper)"></i>face toward you</li>
+          <li><i style="background:var(--paper-back)"></i>face away from you</li>
+          <li><i class="ln" style="background:#d9432a"></i>edge 1</li>
+          <li><i class="ln" style="background:#2b55d8"></i>edge 2</li>
+        </ul>
+        <p class="make"><b>Make one:</b> cut a 28 cm × 3 cm strip, draw a line down the middle, and tape the short ends together without turning either one over.</p>
       </div>
-      <div class="slider"><label for="cutP">Cut progress</label><input type="range" id="cutP" min="0" max="1000" value="0" disabled><output id="cutPOut">—</output></div>
-      <div class="slider"><label for="sepR">Pull apart</label><input type="range" id="sepR" min="0" max="1000" value="0"><output id="sepOut">0%</output></div>
-      <p class="hint">Each cut goes through every piece on the bench. Drag the sliders to scrub the cut or slide the pieces apart.</p>
-    </section>
-
-    <section aria-labelledby="l-probe">
-      <span class="label" id="l-probe">Probe the surface</span>
-      <div class="btns">
-        <button class="btn" id="paint">Paint one side<small>brush never crosses an edge</small></button>
-        <button class="btn" id="ant">Send an ant<small>walks the centre line</small></button>
-        <button class="btn" id="trace">Trace the edges<small>colour each boundary</small></button>
-        <button class="btn" id="reset">Start over<small>fresh uncut strip</small></button>
-      </div>
-    </section>
-
-    <section aria-labelledby="l-read" aria-live="polite">
-      <span class="label" id="l-read">What's on the bench</span>
-      <dl class="stats">
-        <div><dt>Pieces</dt><dd id="sPieces">1</dd></div>
-        <div><dt>Sides</dt><dd id="sSides">1</dd></div>
-        <div><dt>Edges</dt><dd id="sEdges">1</dd></div>
-        <div><dt>Linked</dt><dd id="sLink">—</dd></div>
+      <dl class="props">
+        <div><dt>Made from</dt><dd>A 28 cm × 3 cm strip of paper, ends taped together without turning either one over.</dd></div>
+        <div><dt>Sides</dt><dd><span class="big">2</span>an inside and an outside. Paint the outside and the inside stays bare.</dd></div>
+        <div><dt>Edges</dt><dd><span class="big">2</span>two separate circles, each 28 cm long. The boundary is in two pieces.</dd></div>
+        <div><dt>Walk test</dt><dd>Walking along the middle line, an ant is home after <b>one lap</b> (28 cm), still on the face it started on.</dd></div>
+        <div><dt>Cut the middle</dt><dd>Two separate loops, each 28 cm × 1.5 cm. They fall apart.</dd></div>
+        <div><dt>Orientable?</dt><dd>Yes. More on slide 5.</dd></div>
       </dl>
-      <ul class="pieces" id="pieceList"></ul>
-      <p class="link" id="linkText"></p>
-    </section>
+    </div>
+    <div class="foot"><span>One Side, One Edge</span><span>2 / 6</span></div>
+  </section>
 
-    <footer class="foot">
-      <p>Geometry: x = (R + v·cos θ) cos u, y = v·sin θ, z = (R + v·cos θ) sin u, with θ = k·u/2. Measurements assume a 28 cm × 3 cm paper strip. Pulling apart is a continuous deformation, so pieces never pass through each other and links and knots are preserved.</p>
-    </footer>
-  </aside>
-</div>
+  <!-- ============ 3. Möbius strip ============ -->
+  <section class="slide" id="mobius" data-title="The Möbius strip">
+    <div>
+      <span class="eyebrow">3 · The Möbius strip</span>
+      <h2>Give one end a half-twist first: one side, one edge</h2>
+    </div>
+    <div class="split">
+      <div class="draw">
+        <div class="drawing" data-k="1"><svg role="img" aria-label="Drawing of a Möbius strip. Its single edge is drawn red all the way round."></svg><span class="tag">1 half-twist · drag to turn</span></div>
+        <ul class="key">
+          <li><i style="background:var(--paper)"></i>face toward you</li>
+          <li><i style="background:var(--paper-back)"></i>face away from you</li>
+          <li><i class="ln" style="background:#d9432a"></i>the only edge</li>
+        </ul>
+        <p class="make"><b>Make one:</b> take the same strip, turn one end over (a half-twist), then tape. Trace the edge with a finger, then cut along the middle line.</p>
+      </div>
+      <dl class="props">
+        <div><dt>Made from</dt><dd>The same 28 cm × 3 cm strip, with one end turned over (a half-twist, 180°) before taping.</dd></div>
+        <div><dt>Sides</dt><dd><span class="big">1</span>the brush paints the whole strip, both faces of the paper, without ever crossing an edge.</dd></div>
+        <div><dt>Edges</dt><dd><span class="big">1</span>a single closed curve 56 cm long. The two 28 cm edges of the strip have joined into one.</dd></div>
+        <div><dt>Walk test</dt><dd>An ant walking the middle line needs <b>two laps</b> (56 cm) to get home. After one lap it is right behind its start, on the other face of the paper.</dd></div>
+        <div><dt>Cut the middle</dt><dd>Still one piece: a loop 56 cm × 1.5 cm with two full twists. It has two sides, so it is no longer a Möbius strip.</dd></div>
+        <div><dt>Orientable?</dt><dd>No. More on slide 5.</dd></div>
+      </dl>
+    </div>
+    <div class="foot"><span>One Side, One Edge</span><span>3 / 6</span></div>
+  </section>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- ============ 4. Questions ============ -->
+  <section class="slide" id="questions" data-title="Questions">
+    <div>
+      <span class="eyebrow">4 · Predict, then test</span>
+      <h2>Write your answer down before you reveal it</h2>
+    </div>
+    <div class="qs">
+      <article class="q">
+        <span class="n">1</span>
+        <h3>How many sides and edges does a Möbius strip have?</h3>
+        <p class="think">Run a finger along the edge without lifting it. Where do you end up?</p>
+        <button class="btn" data-reveal>Show answer</button>
+        <div class="ans" hidden>
+          <p><b>One side and one edge.</b></p>
+          <p>Your finger travels both long edges of the original strip, 56 cm in all, before it gets back to the start.</p>
+        </div>
+      </article>
+      <article class="q">
+        <span class="n">2</span>
+        <h3>What happens when it is cut along the centre line?</h3>
+        <p class="think">Does it fall into two pieces like the ordinary loop?</p>
+        <button class="btn" data-reveal>Show answer</button>
+        <div class="ans" hidden>
+          <p><b>It stays in one piece:</b> a single loop twice as long (56 cm) and half as wide (1.5 cm), with two full twists.</p>
+          <p>The new loop has two sides and two edges, so it is no longer a Möbius strip.</p>
+        </div>
+      </article>
+      <article class="q">
+        <span class="n">3</span>
+        <h3>What if you cut one third of the way in from the edge instead?</h3>
+        <p class="think">How many times do the scissors go round before they meet the start?</p>
+        <button class="btn" data-reveal>Show answer</button>
+        <div class="ans" hidden>
+          <p><b>Two loops, linked together.</b> The scissors go round twice. Out come a thin Möbius strip (28 cm × 1 cm) and a long two-sided loop (56 cm × 1 cm) with two full twists.</p>
+          <p>Try it with paper: draw two lines a third of the way in from each edge, then cut along one of them.</p>
+        </div>
+      </article>
+    </div>
+    <div class="foot"><span>One Side, One Edge</span><span>4 / 6</span></div>
+  </section>
+
+  <!-- ============ 5. Orientability ============ -->
+  <section class="slide" id="orientability" data-title="Orientability">
+    <div>
+      <span class="eyebrow">5 · Orientable and non-orientable</span>
+      <h2>Can clockwise stay clockwise everywhere?</h2>
+    </div>
+    <div class="orient">
+      <div class="text">
+        <p>A surface is <b>orientable</b> if you can agree on one meaning of “clockwise” all over it. Slide a small letter F anywhere along the surface and it always comes back the right way round.</p>
+        <p>A surface is <b>non-orientable</b> if some path brings the F back as its mirror image. The Möbius strip is the simplest example.</p>
+        <div class="kinds">
+          <div><h4>Orientable</h4><ul><li>plane</li><li>sphere (skin of a ball)</li><li>ordinary loop, cylinder</li><li>torus (ring doughnut)</li></ul></div>
+          <div><h4>Non-orientable</h4><ul><li>Möbius strip</li><li>Klein bottle</li><li>projective plane</li></ul></div>
+        </div>
+        <p class="fact">Any surface that contains a Möbius strip is non-orientable. For surfaces sitting in ordinary 3D space, orientable and two-sided mean the same thing.</p>
+      </div>
+      <div class="glue">
+        <p class="status" style="margin:0">The strip drawn flat. Matching arrows show how the two short ends are taped together.</p>
+        <figure>
+          <figcaption><b>Ordinary loop</b><span>arrows point the same way</span></figcaption>
+          <svg viewBox="0 0 460 130" id="glueLoop" role="img" aria-label="Flat strip; both ends have arrows pointing up. The letter F crosses the join unchanged."></svg>
+        </figure>
+        <figure>
+          <figcaption><b>Möbius strip</b><span>arrows point opposite ways</span></figcaption>
+          <svg viewBox="0 0 460 130" id="glueMob" role="img" aria-label="Flat strip; left arrow points up, right arrow points down. The letter F crosses the join and comes back mirrored."></svg>
+        </figure>
+        <div class="row">
+          <button class="btn" id="fPlay">Pause</button>
+          <button class="btn" id="fStep">Move one lap</button>
+          <span class="status" id="fStatus" aria-live="polite"></span>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>One Side, One Edge</span><span>5 / 6</span></div>
+  </section>
+
+  <!-- ============ 6. Vocabulary ============ -->
+  <section class="slide" id="vocabulary" data-title="Geometry vocabulary">
+    <div>
+      <span class="eyebrow">6 · Faces, surfaces, edges and nets</span>
+      <h2>Using the vocabulary in 2D and 3D</h2>
+    </div>
+    <div class="vocab">
+      <div class="netbox">
+        <div class="scene3d" aria-hidden="true">
+          <div class="net" id="net" style="--fold: 0deg">
+            <div class="face base">base
+              <div class="face l">1</div>
+              <div class="face r">2</div>
+              <div class="face u">3</div>
+              <div class="face d">4<div class="face d">lid</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="slider"><label for="fold">Fold the net</label><input type="range" id="fold" min="0" max="90" value="0"><output id="foldOut">0°</output></div>
+        <div class="tools"><button class="btn" id="foldBtn">Fold into a cube</button></div>
+        <p>A <b>net</b> is a flat 2D pattern that folds into a 3D shape. Its area is the shape's <b>surface area</b>: for a cube with 3 cm edges, 6 × 3 × 3 = <b>54 cm²</b>.</p>
+      </div>
+      <div class="right">
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Shape</th><th>Faces / surfaces</th><th>Edges</th><th>Vertices</th><th>Sides</th></tr></thead>
+            <tbody>
+              <tr><td>Cube</td><td>6 flat faces</td><td>12</td><td>8</td><td>2 (inside, outside)</td></tr>
+              <tr><td>Closed cylinder</td><td>3 (2 flat, 1 curved)</td><td>2</td><td>0</td><td>2</td></tr>
+              <tr><td>Paper loop</td><td>1 curved surface</td><td>2</td><td>0</td><td>2</td></tr>
+              <tr class="hl"><td>Möbius strip</td><td>1 curved surface</td><td>1</td><td>0</td><td>1</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="cols2">
+          <div class="panel">
+            <h4>Same net, different glue</h4>
+            <svg viewBox="0 0 300 92" aria-hidden="true">
+              <g font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--muted)">
+                <rect x="20" y="8" width="120" height="30" fill="var(--paper)" stroke="var(--ink)"/>
+                <path d="M20 31 V15 M16 19 L20 13 L24 19 M140 31 V15 M136 19 L140 13 L144 19" stroke="var(--accent)" stroke-width="2" fill="none"/>
+                <text x="152" y="27">loop</text>
+                <rect x="20" y="54" width="120" height="30" fill="var(--paper)" stroke="var(--ink)"/>
+                <path d="M20 77 V61 M16 65 L20 59 L24 65 M140 61 V77 M136 73 L140 79 L144 73" stroke="var(--cut)" stroke-width="2" fill="none"/>
+                <text x="152" y="73">Möbius strip</text>
+              </g>
+            </svg>
+            <p>Both nets are a 28 cm × 3 cm rectangle, so both surfaces have area 28 × 3 = <b>84 cm²</b>. The half-twist changes how the ends are joined, not the area.</p>
+          </div>
+          <div class="panel">
+            <h4>Spatial reasoning</h4>
+            <ul>
+              <li><b>2D → 3D:</b> six squares joined edge to edge make 35 different shapes. Which fold into a cube? (11 of them do.)</li>
+              <li><b>3D → 2D:</b> the half-twist cannot be made on a flat table; you have to lift the paper into the third dimension.</li>
+              <li><b>Count:</b> faces, edges and vertices of a cube satisfy V − E + F = 8 − 12 + 6 = 2.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>One Side, One Edge</span><span>6 / 6</span></div>
+  </section>
+</main>
+
+<nav class="bar" id="bar" aria-label="Slide controls">
+  <div class="prog"><i id="prog"></i></div>
+  <button class="btn" id="prev" aria-label="Previous slide">← Prev</button>
+  <span class="count" id="count">1 / 6</span>
+  <button class="btn" id="next" aria-label="Next slide">Next →</button>
+  <span class="title" id="slideTitle"></span>
+  <span class="keys">← → keys · Home / End</span>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.17/dist/motion.js"></script>
 <script>
 (() => {
-  const TAU = Math.PI * 2;
-  const R = 1.5;            // radius of the strip's centre circle
-  const W = 0.5;            // half-width of the strip
-  const PHI = Math.PI / 2;  // ribbon starts vertical at u = 0
-  const GAP = 0.028;        // how far each cut edge pulls back
-  const LEN_CM = 28, WID_CM = 3;
-  const lin = hex => new THREE.Color(hex).convertSRGBToLinear();
-  const PAPER = lin('#efe3c4');
-  const PALETTE = ['#f2c14e', '#5aa6e8', '#62c08e', '#ef86ad', '#a487ea', '#f39a57', '#46bfc7', '#c6d25a'].map(lin);
-  const PAINT = lin('#2b55d8');
-  const EDGE_A = lin('#d9432a'), EDGE_B = lin('#2b55d8'), EDGE_PLAIN = lin('#3a3226');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-
-  const $ = id => document.getElementById(id);
+  const M = window.Motion;
   const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
   const smooth = x => x * x * (3 - 2 * x);
-  const easeOut = x => 1 - Math.pow(1 - x, 3);
 
-  // ---------- state ----------
-  let k = 1;
-  let pieces = [];
-  let cut = null;       // { p, curves:[{t, len}], mode, from }
-  let rounds = 0;
-  let sep = 0;
-  let paintQ = 0, paintOn = false;
-  let ant = null;       // { q }
-  let trace = null;     // { q }
-  const tweens = [];
-
-  const oneSided = pc => (k * pc.m) % 2 === 1;
-  const loopLen = pc => TAU * pc.m;
-
-  // ---------- geometry ----------
-  // Position and normal of the strip surface at (s, t). t is measured in the original strip's
-  // width coordinate; lam spreads piece centres apart along the ribbon direction (an isotopy).
-  function surf(s, t, out, nout) {
-    const th = k * s / 2 + PHI, ct = Math.cos(th), st = Math.sin(th);
-    const cs = Math.cos(s), ss = Math.sin(s), rho = R + t * ct;
-    out.set(rho * cs, t * st, rho * ss);
-    if (nout) {
-      const dth = k / 2;
-      const sx = -t * st * dth * cs - rho * ss, sy = t * ct * dth, sz = -t * st * dth * ss + rho * cs;
-      const tx = ct * cs, ty = st, tz = ct * ss;
-      nout.set(sy * tz - sz * ty, sz * tx - sx * tz, sx * ty - sy * tx).normalize();
+  // Animate a number. Uses Motion when it loaded, otherwise a plain rAF fallback.
+  function tweenNum(from, to, ms, onUpdate, done, linear) {
+    if (reduced.matches) ms = Math.min(ms, 400);
+    if (M && M.animate) {
+      const c = M.animate(from, to, { duration: ms / 1000, ease: linear ? 'linear' : [0.22, 1, 0.36, 1], onUpdate, onComplete: done });
+      return { stop: () => c.stop() };
     }
-    return out;
-  }
-  function lamFor() {
-    let lim = 4.5;
-    for (const pc of pieces) {
-      const mid = (pc.a + pc.b) / 2, h = (pc.b - pc.a) / 2;
-      if (Math.abs(mid) > 1e-6) lim = Math.min(lim, (0.56 * R - h) / Math.abs(mid));
-    }
-    return 1 + smooth(sep) * (Math.max(1, lim) - 1);
-  }
-  const shiftT = (pc, t, lam) => { const mid = (pc.a + pc.b) / 2; return lam * mid + (t - mid); };
-
-  function edgeGap(e, s) {
-    if (!e) return 0;
-    if (e === 'done' || cut.p >= 1) return GAP;
-    const sig = (e.per ? s % e.per : s) + e.off;
-    return GAP * smooth(clamp((cut.p * e.len - sig) / 0.22, 0, 1));
-  }
-
-  // ---------- three.js scene ----------
-  const stage = $('stage'), canvas = $('c');
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.outputEncoding = THREE.sRGBEncoding;
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 100);
-  camera.position.set(0.5, 4.1, 6.6);
-  const controls = new THREE.OrbitControls(camera, canvas);
-  controls.enableDamping = true; controls.dampingFactor = 0.08;
-  controls.minDistance = 2.5; controls.maxDistance = 14; controls.enablePan = false;
-  controls.autoRotate = !reduced.matches; controls.autoRotateSpeed = 0.55;
-  controls.addEventListener('start', () => { controls.autoRotate = false; });
-
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x6a7686, 0.55));
-  const key = new THREE.DirectionalLight(0xffffff, 0.7); key.position.set(3, 6, 4); scene.add(key);
-  const rim = new THREE.DirectionalLight(0xffffff, 0.25); rim.position.set(-4, -2, -3); scene.add(rim);
-
-  const world = new THREE.Group(); scene.add(world);
-  const matF = new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.FrontSide, roughness: 0.85, metalness: 0 });
-  const matB = new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.BackSide, roughness: 0.85, metalness: 0 });
-  const edgeMat = () => new THREE.LineBasicMaterial({ color: 0x3a3226, transparent: true, opacity: 0.55 });
-  const guideMat = new THREE.LineBasicMaterial({ color: 0xd9432a, transparent: true, opacity: 0.9 });
-  const NT = 8;
-
-  function buildPieceMeshes(pc) {
-    const ns = 220 * pc.m, nv = (ns + 1) * (NT + 1);
-    const pos = new THREE.BufferAttribute(new Float32Array(nv * 3), 3);
-    const nor = new THREE.BufferAttribute(new Float32Array(nv * 3), 3);
-    const idx = [];
-    for (let i = 0; i < ns; i++) for (let j = 0; j < NT; j++) {
-      const a = i * (NT + 1) + j, b = a + NT + 1;
-      idx.push(a, b, a + 1, a + 1, b, b + 1);
-    }
-    const mk = mat => {
-      const g = new THREE.BufferGeometry();
-      g.setIndex(idx); g.setAttribute('position', pos); g.setAttribute('normal', nor);
-      g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(nv * 3), 3));
-      const m = new THREE.Mesh(g, mat); world.add(m); return m;
+    let stopped = false; const t0 = performance.now();
+    const tick = now => {
+      if (stopped) return;
+      const x = clamp((now - t0) / ms, 0, 1), e = linear ? x : 1 - Math.pow(1 - x, 3);
+      onUpdate(from + (to - from) * e);
+      if (x < 1) requestAnimationFrame(tick); else done && done();
     };
-    const line = () => {
-      const g = new THREE.BufferGeometry();
-      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array((ns + 1) * 3), 3));
-      const l = new THREE.Line(g, edgeMat()); world.add(l); return l;
-    };
-    Object.assign(pc, { ns, pos, nor, front: mk(matF), back: mk(matB), loLine: line(), hiLine: line() });
-  }
-  function disposePiece(pc) {
-    for (const o of [pc.front, pc.back, pc.loLine, pc.hiLine]) { world.remove(o); o.geometry.dispose(); }
-    pc.loLine.material.dispose(); pc.hiLine.material.dispose();
+    requestAnimationFrame(tick);
+    return { stop: () => { stopped = true; } };
   }
 
-  const P = new THREE.Vector3(), N = new THREE.Vector3(), C = new THREE.Color();
-  function updatePiece(pc, lam) {
-    const { ns, pos, nor } = pc, L = loopLen(pc);
-    const cf = pc.front.geometry.attributes.color, cb = pc.back.geometry.attributes.color;
-    const one = oneSided(pc), Lp = L * (one ? 2 : 1), qs = paintQ * Lp;
-    const lo = pc.loLine.geometry.attributes.position, hi = pc.hiLine.geometry.attributes.position;
-    for (let i = 0; i <= ns; i++) {
-      const s = (i / ns) * L;
-      const a = pc.a + edgeGap(pc.lo, s), b = pc.b - edgeGap(pc.hi, s);
-      const pf = paintOn ? smooth(clamp((qs - s) / 0.35, 0, 1)) : 0;
-      const pb = paintOn && one ? smooth(clamp((qs - s - L) / 0.35, 0, 1)) : 0;
-      for (let j = 0; j <= NT; j++) {
-        const t = a + (b - a) * (j / NT), v = i * (NT + 1) + j;
-        surf(s, shiftT(pc, t, lam), P, N);
-        pos.setXYZ(v, P.x, P.y, P.z); nor.setXYZ(v, N.x, N.y, N.z);
-        C.copy(pc.col).lerp(PAINT, pf * 0.85); cf.setXYZ(v, C.r, C.g, C.b);
-        C.copy(pc.col).lerp(PAINT, pb * 0.85); cb.setXYZ(v, C.r, C.g, C.b);
-      }
-      surf(s, shiftT(pc, a, lam), P); lo.setXYZ(i, P.x, P.y, P.z);
-      surf(s, shiftT(pc, b, lam), P); hi.setXYZ(i, P.x, P.y, P.z);
+  // =================== deck navigation ===================
+  const deck = document.getElementById('deck');
+  const slides = [...deck.querySelectorAll('.slide')];
+  const bar = document.getElementById('bar');
+  let cur = 0;
+
+  function layout() {
+    const paged = innerWidth >= 760 && innerHeight >= 440;
+    deck.classList.toggle('paged', paged); deck.classList.toggle('stack', !paged);
+    bar.hidden = !paged;
+    if (paged) {
+      const s = Math.min((innerWidth - 32) / 1280, (innerHeight - 56 - 24) / 720);
+      deck.style.setProperty('--s', s.toFixed(4));
     }
-    pos.needsUpdate = nor.needsUpdate = cf.needsUpdate = cb.needsUpdate = lo.needsUpdate = hi.needsUpdate = true;
-    pc.front.geometry.computeBoundingSphere();
-    pc.back.geometry.computeBoundingSphere();
+    drawings.forEach(d => d.draw());
+    syncActive();
   }
-
-  // pencil line down the middle of the uncut strip, drawn on both faces
-  const pencilMat = new THREE.LineDashedMaterial({ color: 0x6b5e45, dashSize: 0.06, gapSize: 0.04, transparent: true, opacity: 0.8 });
-  const pencils = [1, -1].map(side => {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(441 * 3), 3));
-    const l = new THREE.Line(g, pencilMat); l.userData.side = side; world.add(l); return l;
+  function go(i) {
+    cur = clamp(i, 0, slides.length - 1);
+    slides.forEach((s, j) => { s.classList.toggle('on', j === cur); s.setAttribute('aria-hidden', String(deck.classList.contains('paged') && j !== cur)); });
+    document.getElementById('count').textContent = `${cur + 1} / ${slides.length}`;
+    document.getElementById('slideTitle').textContent = slides[cur].dataset.title;
+    document.getElementById('prog').style.width = `${((cur + 1) / slides.length) * 100}%`;
+    document.getElementById('prev').disabled = cur === 0;
+    document.getElementById('next').disabled = cur === slides.length - 1;
+    try { history.replaceState(null, '', '#' + slides[cur].id); } catch (e) {}
+    syncActive();
+  }
+  document.getElementById('prev').addEventListener('click', () => go(cur - 1));
+  document.getElementById('next').addEventListener('click', () => go(cur + 1));
+  addEventListener('keydown', e => {
+    if (!deck.classList.contains('paged') || e.altKey || e.ctrlKey || e.metaKey) return;
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || (e.key === ' ' && tag !== 'BUTTON')) { e.preventDefault(); go(cur + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(cur - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); go(0); }
+    else if (e.key === 'End') { e.preventDefault(); go(slides.length - 1); }
   });
-  function updatePencil() {
-    const show = rounds === 0 && !paintOn;
-    pencils.forEach(l => {
-      l.visible = show;
-      if (!show || l.userData.done === k) return;
-      const a = l.geometry.attributes.position;
-      for (let i = 0; i <= 440; i++) { surf((i / 440) * TAU, 0, P, N); P.addScaledVector(N, 0.003 * l.userData.side); a.setXYZ(i, P.x, P.y, P.z); }
-      a.needsUpdate = true; l.computeLineDistances(); l.geometry.computeBoundingSphere(); l.userData.done = k;
-    });
+  // swipe between slides on touch screens (outside the 3D views)
+  let sx = null;
+  deck.addEventListener('touchstart', e => { sx = e.target.closest('.view, input') ? null : e.touches[0].clientX; }, { passive: true });
+  deck.addEventListener('touchend', e => {
+    if (sx === null || !deck.classList.contains('paged')) return;
+    const dx = e.changedTouches[0].clientX - sx;
+    if (Math.abs(dx) > 50) go(cur + (dx < 0 ? 1 : -1));
+    sx = null;
+  });
+
+  // In stacked (phone) mode every slide is on screen, so 3D views run while visible.
+  const visible = new Set();
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(en => en.isIntersecting ? visible.add(en.target) : visible.delete(en.target));
+    syncActive();
+  });
+  slides.forEach(s => io.observe(s));
+  function syncActive() {
+    const paged = deck.classList.contains('paged');
+    orient.setActive(paged ? slides[cur].id === 'orientability' : visible.has(document.getElementById('orientability')));
   }
 
-  // scissors: two blades meeting at a pivot, pointing along the cut
-  const scissorsPool = [];
-  function makeScissors() {
-    const g = new THREE.Group();
-    const steel = new THREE.MeshStandardMaterial({ color: 0xcfd5dc, metalness: 0.6, roughness: 0.3 });
-    const grip = new THREE.MeshStandardMaterial({ color: 0xd9432a, roughness: 0.6 });
-    const bladeGeo = new THREE.BoxGeometry(0.34, 0.016, 0.03); bladeGeo.translate(0.17, 0, 0);
-    const ringGeo = new THREE.TorusGeometry(0.045, 0.012, 8, 20);
-    const halves = [1, -1].map(sg => {
-      const h = new THREE.Group();
-      h.add(new THREE.Mesh(bladeGeo, steel));
-      const ring = new THREE.Mesh(ringGeo, grip); ring.position.set(-0.09, 0.03 * sg, 0); h.add(ring);
-      g.add(h); return h;
-    });
-    g.userData.halves = halves; g.scale.setScalar(1.5);
-    world.add(g); return g;
-  }
-  const guides = [];
-  const basis = new THREE.Matrix4(), X = new THREE.Vector3(), Y = new THREE.Vector3(), Z = new THREE.Vector3(), Q = new THREE.Vector3();
-
-  function updateScissors(lam, time) {
-    const curves = cut && cut.p < 1 ? cut.curves : [];
-    while (scissorsPool.length < curves.length) scissorsPool.push(makeScissors());
-    while (guides.length < curves.length) {
-      const g = new THREE.BufferGeometry();
-      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(1201 * 3), 3));
-      const l = new THREE.Line(g, guideMat); world.add(l); guides.push(l);
-    }
-    scissorsPool.forEach((sc, i) => { sc.visible = i < curves.length; });
-    guides.forEach((g, i) => { g.visible = i < curves.length; });
-    curves.forEach((cv, i) => {
-      const u = cut.p * cv.len, t = shiftT(cv, cv.t, lam);
-      surf(u, t, P, N); surf(u + 0.01, t, Q);
-      X.subVectors(Q, P).normalize(); Y.copy(N); Z.crossVectors(X, Y).normalize();
-      const sc = scissorsPool[i];
-      basis.makeBasis(X, Y, Z); sc.position.copy(P); sc.quaternion.setFromRotationMatrix(basis);
-      const open = reduced.matches ? 0.2 : 0.12 + 0.14 * Math.abs(Math.sin(time * 9));
-      sc.userData.halves[0].rotation.z = open; sc.userData.halves[1].rotation.z = -open;
-      // dashed-looking guide: the stretch of cut line still ahead of the blades
-      const ga = guides[i].geometry.attributes.position, n = 1200;
-      for (let j = 0; j <= n; j++) {
-        const uu = u + (cv.len - u) * (j / n);
-        surf(uu, t, P, N); P.addScaledVector(N, 0.004);
-        ga.setXYZ(j, P.x, P.y, P.z);
-      }
-      ga.needsUpdate = true; guides[i].geometry.computeBoundingSphere();
-    });
-  }
-
-  // ant: three beads riding just above the surface
-  const antGroup = new THREE.Group(); world.add(antGroup); antGroup.visible = false;
-  const antMat = new THREE.MeshStandardMaterial({ color: 0x1b1b1f, roughness: 0.5 });
-  [0.04, 0.03, 0.035].forEach((r, i) => { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 10), antMat); m.position.x = -i * 0.065; antGroup.add(m); });
-  const trailGeo = new THREE.BufferGeometry();
-  trailGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(2001 * 3), 3));
-  const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0x1b1b1f })); world.add(trail); trail.visible = false;
-
-  function antPath(lam) {
-    const pc = pieces[0], one = oneSided(pc), mid = (pc.a + pc.b) / 2;
-    return { pc, len: loopLen(pc) * (one ? 2 : 1), t: shiftT(pc, mid, lam) };
-  }
-  function updateAnt(lam) {
-    if (!ant) { antGroup.visible = trail.visible = false; return; }
-    const { len, t } = antPath(lam), u = ant.q * len;
-    surf(u, t, P, N); surf(u + 0.01, t, Q);
-    X.subVectors(Q, P).normalize(); Y.copy(N); Z.crossVectors(X, Y).normalize();
-    basis.makeBasis(X, Y, Z); antGroup.quaternion.setFromRotationMatrix(basis);
-    antGroup.position.copy(P).addScaledVector(N, 0.042);
-    antGroup.visible = trail.visible = true;
-    const ta = trailGeo.attributes.position, n = 2000, upto = Math.max(1, Math.round(ant.q * n));
-    for (let j = 0; j <= upto; j++) { surf((j / n) * len, t, P, N); P.addScaledVector(N, 0.012); ta.setXYZ(j, P.x, P.y, P.z); }
-    ta.needsUpdate = true; trailGeo.setDrawRange(0, upto + 1); trailGeo.computeBoundingSphere();
-  }
-
-  // edge tracing: colour each boundary component, with a bead running along it
-  const beads = [];
-  function updateTrace(lam) {
-    let comps = [];
-    pieces.forEach((pc, i) => {
-      const one = oneSided(pc);
-      pc.loLine.material.color.copy(trace ? (one ? EDGE_A : EDGE_B) : EDGE_PLAIN);
-      pc.hiLine.material.color.copy(trace ? EDGE_A : EDGE_PLAIN);
-      pc.loLine.material.opacity = pc.hiLine.material.opacity = trace ? 1 : 0.55;
-      if (!trace) return;
-      const L = loopLen(pc);
-      if (one) comps.push({ pc, len: 2 * L, t: pc.b, gapSide: 'hi' });
-      else { comps.push({ pc, len: L, t: pc.b, gapSide: 'hi' }); comps.push({ pc, len: L, t: pc.a, gapSide: 'lo' }); }
-    });
-    while (beads.length < comps.length) {
-      const b = new THREE.Mesh(new THREE.SphereGeometry(0.035, 16, 12), new THREE.MeshBasicMaterial({ color: 0xd9432a }));
-      world.add(b); beads.push(b);
-    }
-    beads.forEach((b, i) => { b.visible = i < comps.length; });
-    comps.forEach((c, i) => {
-      const u = trace.q * c.len;
-      const inset = c.gapSide === 'hi' ? -edgeGap(c.pc.hi, u % loopLen(c.pc)) : edgeGap(c.pc.lo, u % loopLen(c.pc));
-      surf(u, shiftT(c.pc, c.t + inset, lam), P);
-      beads[i].position.copy(P);
-      beads[i].material.color.copy(c.gapSide === 'lo' ? EDGE_B : EDGE_A);
-    });
-  }
-
-  // ---------- model operations ----------
-  function setPieces(list) {
-    pieces.forEach(disposePiece);
-    pieces = list;
-    pieces.forEach(buildPieceMeshes);
-  }
-  function freshStrip() {
-    cut = null; rounds = 0; sep = 0; paintOn = false; paintQ = 0; ant = null; trace = null;
-    tweens.length = 0;
-    setPieces([{ m: 1, a: -W, b: W, lo: null, hi: null, col: PAPER.clone(), target: PAPER.clone() }]);
-    syncUI(); callout('');
-  }
-  function finalizeCut() {
-    if (!cut) return;
-    cut.p = 1;
-    for (const pc of pieces) {
-      if (pc.lo && pc.lo !== 'done') pc.lo = 'done';
-      if (pc.hi && pc.hi !== 'done') pc.hi = 'done';
-    }
-  }
-
-  function doCut(mode) {
-    finalizeCut();
-    const out = [], curves = [], before = pieces.map(pc => ({ m: pc.m, one: oneSided(pc) }));
-    for (const pc of pieces) {
-      const L = loopLen(pc);
-      if (oneSided(pc)) {
-        const c = pc.b;
-        if (mode === 'middle') {
-          out.push({ m: 2 * pc.m, a: 0, b: c, lo: { off: 0, per: L, len: L }, hi: pc.hi });
-          curves.push({ a: pc.a, b: pc.b, t: 0, len: L });
-        } else {
-          const d = c / 3;
-          out.push({ m: pc.m, a: -d, b: d, lo: { off: L, per: 0, len: 2 * L }, hi: { off: 0, per: 0, len: 2 * L } });
-          out.push({ m: 2 * pc.m, a: d, b: c, lo: { off: 0, per: 0, len: 2 * L }, hi: pc.hi });
-          curves.push({ a: pc.a, b: pc.b, t: d, len: 2 * L });
+  // =================== strip drawings (slides 2 and 3) ===================
+  // The strip x = (R + v cos θ) cos u, y = v sin θ, z = (R + v cos θ) sin u with θ = k·u/2 + π/2,
+  // drawn into SVG as small quads sorted back to front (painter's algorithm).
+  function makeDrawing(box) {
+    const k = +box.dataset.k, svg = box.querySelector('svg'), NS = 'http://www.w3.org/2000/svg';
+    const R = 1.5, W = 0.5, PHI = Math.PI / 2, NU = 180, NV = 4;
+    let yaw = -0.5, pitch = 0.62;
+    const pt = (u, v) => {
+      const th = k * u / 2 + PHI, rho = R + v * Math.cos(th);
+      return [rho * Math.cos(u), v * Math.sin(th), rho * Math.sin(u)];
+    };
+    const view = ([x, y, z]) => {
+      const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+      const x1 = cy * x + sy * z, z1 = -sy * x + cy * z;
+      return [x1, cp * y - sp * z1, sp * y + cp * z1];   // [right, up, toward viewer]
+    };
+    function draw() {
+      const w = box.clientWidth, h = box.clientHeight;
+      if (!w || !h) return;
+      svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      const sc = Math.min(w, h) / 4.6, cx = w / 2, cy = h / 2 + 8;
+      const scr = p => [cx + p[0] * sc, cy - p[1] * sc];
+      const items = [];
+      for (let i = 0; i < NU; i++) {
+        const u0 = (i / NU) * Math.PI * 2, u1 = ((i + 1) / NU) * Math.PI * 2;
+        for (let j = 0; j < NV; j++) {
+          const v0 = -W + (2 * W * j) / NV, v1 = -W + (2 * W * (j + 1)) / NV;
+          const q = [view(pt(u0, v0)), view(pt(u1, v0)), view(pt(u1, v1)), view(pt(u0, v1))];
+          // which face of the paper looks at the viewer: sign of the projected normal's z
+          const ax = q[1][0] - q[0][0], ay = q[1][1] - q[0][1], bx = q[3][0] - q[0][0], by = q[3][1] - q[0][1];
+          const nz = ax * by - ay * bx;
+          const depth = (q[0][2] + q[1][2] + q[2][2] + q[3][2]) / 4;
+          items.push({ depth, quad: q.map(scr), front: nz < 0 });
         }
-      } else {
-        const d = mode === 'middle' ? (pc.a + pc.b) / 2 : pc.a + (pc.b - pc.a) / 3;
-        out.push({ m: pc.m, a: pc.a, b: d, lo: pc.lo, hi: { off: 0, per: 0, len: L } });
-        out.push({ m: pc.m, a: d, b: pc.b, lo: { off: 0, per: 0, len: L }, hi: pc.hi });
-        curves.push({ a: pc.a, b: pc.b, t: d, len: L });
+        // the two long edges of the strip
+        for (const v of [-W, W]) {
+          const a = view(pt(u0, v)), b = view(pt(u1, v));
+          // with a half-twist, v = +W at u continues as v = -W after one lap: one edge, one colour
+          const colour = k % 2 === 1 ? '#d9432a' : (v > 0 ? '#d9432a' : '#2b55d8');
+          items.push({ depth: (a[2] + b[2]) / 2 + 0.002, line: [scr(a), scr(b)], colour });
+        }
       }
+      items.sort((a, b) => a.depth - b.depth);
+      const cs = getComputedStyle(document.documentElement);
+      const paper = cs.getPropertyValue('--paper').trim(), back = cs.getPropertyValue('--paper-back').trim();
+      let out = '';
+      for (const it of items) {
+        if (it.quad) {
+          const fill = it.front ? paper : back;
+          const d = it.quad.map((p, n) => (n ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('') + 'Z';
+          out += `<path d="${d}" fill="${fill}" stroke="${fill}" stroke-width="0.8"/>`;
+        } else {
+          const [a, b] = it.line;
+          out += `<line x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}" stroke="${it.colour}" stroke-width="3" stroke-linecap="round"/>`;
+        }
+      }
+      svg.innerHTML = out;
     }
-    const startCol = pieces.length === 1 ? pieces[0].col.clone() : null;
-    // new pieces keep the colour of the piece they came from until the cut closes
-    let pi = 0;
-    for (const pc of pieces) {
-      const kids = oneSided(pc) && mode === 'middle' ? 1 : 2;
-      for (let j = 0; j < kids; j++) out[pi++].col = pc.col.clone();
-    }
-    out.forEach((pc, i) => { pc.target = PALETTE[i % PALETTE.length].clone(); });
-    rounds++;
-    paintOn = false; paintQ = 0; ant = null; trace = null;
-    setPieces(out);
-    cut = { p: 0, curves, mode, before };
-    const maxLen = Math.max(...curves.map(c => c.len));
-    const dur = reduced.matches ? 900 : 2600 * (maxLen / TAU);
-    tween(dur, x => { cut.p = x; }, () => { onCutDone(); }, x => x);
-    syncUI();
-    callout('');
-  }
-
-  function onCutDone() {
-    for (const pc of pieces) if (!pc.from) pc.from = pc.col.clone();
-    tween(reduced.matches ? 1 : 420, x => { for (const pc of pieces) pc.col.copy(pc.from).lerp(pc.target, easeOut(x)); });
-    setTimeout(() => { if (cut && cut.p >= 1 && sep < 0.01) animateSep(1); }, reduced.matches ? 0 : 450);
-    callout(cutStory());
-    syncUI();
-  }
-
-  function cutStory() {
-    const b = cut.before, n = pieces.length;
-    const anyOne = b.some(x => x.one);
-    if (b.length === 1 && b[0].one && cut.mode === 'middle')
-      return `Still one piece. A one-sided strip has no "other half" for its centre line to separate from, so the cut just opens it into a loop ${k === 1 ? 'twice as long, with two full twists' : 'twice as long, now knotted'}.`;
-    if (b.length === 1 && b[0].one)
-      return `The scissors went around twice before meeting their start. Out come two pieces: a thinner ${k === 1 ? 'Möbius strip' : 'one-sided band'} and a long two-sided loop, linked together.`;
-    if (b.length === 1)
-      return k === 0 ? 'An ordinary loop cuts into two ordinary loops, as you would expect.' : `Two loops, each keeping the parent's ${k} half-twists, and they are linked ${k / 2} time${k === 2 ? '' : 's'}.`;
-    return `${b.length} pieces went in, ${n} came out.${anyOne ? ' The one-sided piece stayed in one piece and doubled in length.' : ''}`;
-  }
-
-  // ---------- tweens ----------
-  function tween(ms, step, done, ease = easeOut) {
-    const tw = { t0: performance.now(), ms: Math.max(1, ms), step, done, ease };
-    tweens.push(tw); return tw;
-  }
-  let sepTween = null;
-  function animateSep(to, then) {
-    if (sepTween) tweens.splice(tweens.indexOf(sepTween), 1);
-    const from = sep;
-    if (Math.abs(to - from) < 1e-3) { sep = to; then && then(); return; }
-    sepTween = tween(reduced.matches ? 1 : 900 * Math.abs(to - from) + 200, x => { sep = from + (to - from) * x; }, () => { sepTween = null; then && then(); });
-  }
-  function runTweens(now) {
-    for (let i = tweens.length - 1; i >= 0; i--) {
-      const tw = tweens[i], x = clamp((now - tw.t0) / tw.ms, 0, 1);
-      tw.step(tw.ease(x));
-      if (x >= 1) { tweens.splice(i, 1); tw.done && tw.done(); }
-    }
-  }
-  const busy = () => cut && cut.p < 1 && tweens.length > 0;
-
-  // ---------- descriptions ----------
-  const KNOTS = { 1: 'unknotted', 3: 'tied in a trefoil knot', 5: 'tied in a cinquefoil (5₁) knot' };
-  function describe(pc) {
-    const one = oneSided(pc), lenCm = LEN_CM * pc.m, wCm = ((pc.b - pc.a) / (2 * W)) * WID_CM;
-    let name, twist;
-    if (one) {
-      name = k === 1 ? 'Möbius strip' : `One-sided band`;
-      twist = `${k} half-twist${k === 1 ? '' : 's'}`;
-    } else {
-      const h = k * pc.m * pc.m;
-      name = pc.m === 1 ? (k === 0 ? 'Plain loop' : 'Twisted loop') : 'Long loop';
-      twist = h === 0 ? 'no twist' : `${h} half-twists`;
-    }
-    const knot = pc.m === 2 ? KNOTS[k] || 'knotted' : 'unknotted';
-    return { name, detail: `${one ? '1 side · 1 edge' : '2 sides · 2 edges'} · ${twist}`, size: `${lenCm.toFixed(0)} cm long × ${wCm.toFixed(1)} cm wide · ${knot}` };
-  }
-  function linking() {
-    const pairs = [];
-    for (let i = 0; i < pieces.length; i++) for (let j = i + 1; j < pieces.length; j++)
-      pairs.push(k * pieces[i].m * pieces[j].m / 2);
-    return pairs;
-  }
-
-  // ---------- UI ----------
-  const seg = $('twists');
-  for (let i = 0; i <= 5; i++) {
-    const b = document.createElement('button');
-    b.textContent = i; b.setAttribute('aria-label', `${i} half-twist${i === 1 ? '' : 's'}`);
-    b.addEventListener('click', () => { k = i; freshStrip(); });
-    seg.appendChild(b);
-  }
-  const HINTS = ['A plain cylinder: two sides, two edges.', 'The classic Möbius strip: one side, one edge.', 'One full twist: two sides again, but the edges are linked.',
-    'Three half-twists: one-sided, and its edge is a trefoil knot.', 'Two full twists: two sides, edges linked twice.', 'Five half-twists: one-sided, its edge a cinquefoil knot.'];
-
-  function syncUI() {
-    [...seg.children].forEach((b, i) => b.setAttribute('aria-pressed', String(i === k)));
-    $('twistHint').textContent = HINTS[k];
-    const cutting = cut && cut.p < 1;
-    const tooThin = pieces.some(pc => pc.b - pc.a < 0.14);
-    $('cutMid').disabled = $('cutThird').disabled = rounds >= 3 || tooThin;
-    $('cutP').disabled = !cut;
-    $('paint').firstChild.textContent = paintOn ? 'Clear the paint' : 'Paint one side';
-    $('trace').firstChild.textContent = trace ? 'Hide edge colours' : 'Trace the edges';
-
-    const n = pieces.length, sidesArr = pieces.map(pc => oneSided(pc) ? 1 : 2);
-    $('sPieces').textContent = n;
-    $('sSides').textContent = n === 1 ? sidesArr[0] : sidesArr.reduce((a, b) => a + b, 0);
-    $('sEdges').textContent = pieces.reduce((a, pc) => a + (oneSided(pc) ? 1 : 2), 0);
-    const lk = linking(), linked = lk.filter(x => x > 0);
-    $('sLink').textContent = n === 1 ? '—' : linked.length ? (n === 2 ? `×${lk[0]}` : `${linked.length}/${lk.length}`) : 'no';
-    $('linkText').textContent = n === 1 ? (rounds ? '' : 'Uncut. The dashed pencil line marks the middle of the strip.')
-      : !linked.length ? 'None of the pieces are linked; they slide apart freely.'
-      : n === 2 ? `The two pieces are linked: one passes through the other ${lk[0]} time${lk[0] === 1 ? '' : 's'} (linking number ${lk[0]}).`
-      : `${linked.length} of ${lk.length} pairs are linked${new Set(linked).size === 1 ? `, each with linking number ${linked[0]}` : ''}.`;
-
-    const list = $('pieceList'); list.textContent = '';
-    pieces.forEach(pc => {
-      const d = describe(pc), li = document.createElement('li');
-      const sw = document.createElement('i'); sw.className = 'sw';
-      sw.style.background = '#' + (cut && cut.p >= 1 ? pc.target : pc.col).getHexString();
-      const box = document.createElement('div');
-      box.innerHTML = `<b></b><span></span><span></span>`;
-      box.children[0].textContent = d.name; box.children[1].textContent = d.detail; box.children[2].textContent = d.size;
-      li.append(sw, box); list.appendChild(li);
+    // drag to turn the drawing
+    let drag = null;
+    box.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, yaw, pitch }; box.setPointerCapture(e.pointerId); });
+    box.addEventListener('pointermove', e => {
+      if (!drag) return;
+      yaw = drag.yaw + (e.clientX - drag.x) * 0.01;
+      pitch = clamp(drag.pitch + (e.clientY - drag.y) * 0.01, -1.4, 1.4);
+      draw();
     });
+    const end = () => { drag = null; };
+    box.addEventListener('pointerup', end); box.addEventListener('pointercancel', end);
+    new ResizeObserver(draw).observe(box);
+    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+    new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return { draw };
   }
 
-  let story = 0;
-  const latest = () => { const id = ++story; return text => { if (id === story) callout(text, true); }; };
-  function callout(text, keep) {
-    const el = $('callout');
-    if (!keep) story++;
-    if (!text) { el.setAttribute('data-off', ''); return; }
-    el.textContent = text; el.removeAttribute('data-off');
-  }
-
-  $('cutMid').addEventListener('click', () => startCut('middle'));
-  $('cutThird').addEventListener('click', () => startCut('third'));
-  function startCut(mode) {
-    if (busy()) { finalizeCut(); tweens.length = 0; onCutDone(); }
-    animateSep(0, () => doCut(mode));
-  }
-  $('cutP').addEventListener('input', e => {
-    if (!cut) return;
-    tweens.length = 0; sepTween = null;
-    cut.p = e.target.value / 1000;
-    if (cut.p >= 1) onCutDone(); else { for (const pc of pieces) pc.col.copy(pc.from || pc.col); sep = 0; }
-  });
-  $('sepR').addEventListener('input', e => {
-    if (sepTween) { tweens.splice(tweens.indexOf(sepTween), 1); sepTween = null; }
-    if (cut && cut.p < 1) { e.target.value = 0; callout('Finish the cut before pulling the pieces apart.'); return; }
-    sep = e.target.value / 1000;
-  });
-  $('paint').addEventListener('click', () => {
-    if (paintOn) { paintOn = false; paintQ = 0; callout(''); syncUI(); return; }
-    finalizeCut(); paintOn = true; paintQ = 0;
-    const one = pieces.some(oneSided), allOne = pieces.every(oneSided);
-    const laps = one ? 2 : 1;
-    callout(one ? 'Painting along one face. Watch where the brush goes after the first lap…' : 'Painting along one face…');
-    const say = latest();
-    tween(reduced.matches ? 400 : 3000 * laps, x => { paintQ = x; }, () => {
-      say(allOne && pieces.length === 1
-        ? 'The brush never crossed an edge, yet every bit of paper is now blue. There is only one side to paint.'
-        : one ? 'The one-sided piece got painted all over in two laps. The two-sided pieces still have a bare side.'
-        : 'The brush came back to where it started after one lap. The other side is still bare paper.');
-    }, x => x);
-    syncUI();
-  });
-  $('ant').addEventListener('click', () => {
-    finalizeCut();
-    ant = { q: 0 };
-    const { pc } = antPath(1), one = oneSided(pc);
-    const laps = pc.m * (one ? 2 : 1);
-    callout('The ant walks the centre line of the first piece and never steps over an edge.');
-    const say = latest();
-    tween(reduced.matches ? 600 : 3600 * laps, x => { ant.q = x; }, () => {
-      say(one
-        ? `The ant walked ${laps} laps before it was home. Halfway through it passed its starting point on the opposite face of the paper, without ever crossing an edge.`
-        : `The ant got home after ${laps === 1 ? 'one lap' : laps + ' laps'}, on the same face it started on.`);
-    }, x => x);
-  });
-  $('trace').addEventListener('click', () => {
-    if (trace) { trace = null; syncUI(); callout(''); return; }
-    finalizeCut();
-    trace = { q: 0 };
-    const total = pieces.reduce((a, pc) => a + (oneSided(pc) ? 1 : 2), 0);
-    tween(reduced.matches ? 400 : 5200, x => { trace.q = x; }, null, x => x);
-    callout(pieces.length === 1 && oneSided(pieces[0])
-      ? 'One bead, one colour. It runs along the top edge, then carries on along the bottom: they are the same edge.'
-      : `${total} edge${total === 1 ? '' : 's'} in all. Each bead runs once around its own edge.`);
-    syncUI();
-  });
-  $('reset').addEventListener('click', freshStrip);
-
-  // ---------- render loop ----------
-  function resize() {
-    const w = stage.clientWidth, h = stage.clientHeight;
-    renderer.setSize(w, h, false); camera.aspect = w / h;
-    camera.position.setLength(w / h < 0.9 ? 9.4 : camera.position.length());
-    camera.updateProjectionMatrix();
-  }
-  new ResizeObserver(resize).observe(stage); resize();
-  reduced.addEventListener('change', () => { if (reduced.matches) controls.autoRotate = false; });
-
-  let lastCutUI = -1;
-  function frame(now) {
-    runTweens(now);
-    const lam = lamFor();
-    for (const pc of pieces) updatePiece(pc, lam);
-    updateScissors(lam, now / 1000);
-    updateAnt(lam);
-    updatePencil();
-    updateTrace(lam);
-    const cp = cut ? cut.p : -1;
-    if (cp !== lastCutUI) {
-      lastCutUI = cp;
-      $('cutP').value = cut ? Math.round(cut.p * 1000) : 0;
-      $('cutPOut').textContent = cut ? Math.round(cut.p * 100) + '%' : '—';
-      if (cut && cut.p < 1) {
-        const lapsTotal = cut.curves.length ? Math.round(Math.max(...cut.curves.map(c => c.len)) / TAU) : 1;
-        const lap = Math.min(lapsTotal, Math.floor(cut.p * lapsTotal) + 1);
-        $('hudLive').textContent = `cutting · lap ${lap} of ${lapsTotal} around the centre`;
-      } else $('hudLive').textContent = '';
+  // =================== glue diagrams: the F test (slide 5) ===================
+  const orient = (() => {
+    const NS = 'http://www.w3.org/2000/svg';
+    const X0 = 30, X1 = 430, Y0 = 20, Y1 = 110;    // strip drawn flat inside the 460×130 box
+    const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent && parent.appendChild(e); return e; };
+    let clipN = 0;
+    function setup(svg, twisted) {
+      const id = 'clip' + (clipN++);
+      el('rect', { x: X0, y: Y0, width: X1 - X0, height: Y1 - Y0 }, el('clipPath', { id }, el('defs', {}, svg)));
+      el('rect', { x: X0, y: Y0, width: X1 - X0, height: Y1 - Y0, fill: 'var(--paper)', stroke: 'var(--ink)', 'stroke-width': 1.5 }, svg);
+      // glue arrows on the two short ends
+      const arrow = (x, up, color) => {
+        const g = el('g', { stroke: color, 'stroke-width': 2.5, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, svg);
+        const [a, b] = up ? [Y1 - 14, Y0 + 14] : [Y0 + 14, Y1 - 14];
+        el('path', { d: `M${x} ${a} V${b} M${x - 7} ${b + (up ? 9 : -9)} L${x} ${b} L${x + 7} ${b + (up ? 9 : -9)}` }, g);
+      };
+      arrow(X0, true, 'var(--accent)');
+      arrow(X1, !twisted, twisted ? 'var(--cut)' : 'var(--accent)');
+      el('line', { x1: X0 + 8, y1: (Y0 + Y1) / 2, x2: X1 - 8, y2: (Y0 + Y1) / 2, stroke: 'var(--ink)', 'stroke-opacity': 0.3, 'stroke-dasharray': '4 4' }, svg);
+      const ghost = el('text', { x: X0 + 46, y: 0, 'font-family': 'Bricolage Grotesque, sans-serif', 'font-weight': 700, 'font-size': 34, fill: 'var(--ink)', 'fill-opacity': 0.18, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, svg);
+      ghost.textContent = 'F';
+      const g = el('g', { 'clip-path': `url(#${id})` }, svg);
+      const mk = () => { const t = el('text', { x: 0, y: 0, 'font-family': 'Bricolage Grotesque, sans-serif', 'font-weight': 700, 'font-size': 34, fill: 'var(--cut)', 'text-anchor': 'middle', 'dominant-baseline': 'central' }, g); t.textContent = 'F'; return t; };
+      return { twisted, f: mk(), tail: mk(), ghost };
     }
-    $('sepR').value = Math.round(sep * 1000);
-    $('sepOut').textContent = Math.round(sep * 100) + '%';
-    controls.update();
-    renderer.render(scene, camera);
-    requestAnimationFrame(frame);
+    const items = [setup(document.getElementById('glueLoop'), false), setup(document.getElementById('glueMob'), true)];
+    const yStart = Y0 + 26;                 // F starts above the centre line so the flip is easy to see
+    let pos = 0;                            // distance travelled, in laps
+    let playing = !reduced.matches, active = false, last = null, stepAnim = null;
+    const status = document.getElementById('fStatus'), play = document.getElementById('fPlay');
+
+    const WID = X1 - X0, START = 46;
+    function draw() {
+      // distance along the strip from its left end; each time it passes WID the F crosses the taped join
+      const d = START + pos * WID, crossings = Math.floor(d / WID), xx = X0 + (d - crossings * WID);
+      items.forEach(it => {
+        const place = (node, x, n) => {
+          const flipped = it.twisted && n % 2 === 1;   // the twisted join swaps top/bottom and mirrors the letter
+          const y = flipped ? Y0 + Y1 - yStart : yStart;
+          node.setAttribute('transform', `translate(${x} ${y}) scale(1 ${flipped ? -1 : 1})`);
+        };
+        place(it.f, xx, crossings);
+        place(it.tail, xx + WID, crossings - 1);    // the part of the letter not yet through the join
+        it.ghost.setAttribute('y', yStart);
+      });
+      status.textContent = crossings === 0 ? 'Watch the F cross the join at the right-hand end.'
+        : crossings % 2 === 1 ? `Crossed the join ${crossings === 1 ? 'once' : crossings + ' times'}: on the Möbius strip the F is mirrored.`
+        : `Crossed the join ${crossings} times: both Fs are the right way round again.`;
+    }
+    function tick(now) {
+      if (active && playing && !stepAnim) {
+        if (last !== null) pos += (now - last) / 4200;
+        if (pos >= 4) pos -= 4;
+        draw();
+      }
+      last = now;
+    }
+    play.addEventListener('click', () => { playing = !playing; play.textContent = playing ? 'Pause' : 'Play'; });
+    document.getElementById('fStep').addEventListener('click', () => {
+      playing = false; play.textContent = 'Play';
+      if (stepAnim) stepAnim.stop();
+      const from = pos, to = Math.floor(pos + 1e-6) + 1;
+      stepAnim = tweenNum(from, to, reduced.matches ? 1 : 1600, v => { pos = v % 4; draw(); }, () => { stepAnim = null; });
+    });
+    play.textContent = playing ? 'Pause' : 'Play';
+    draw();
+    return { tick, setActive(on) { active = on; last = null; } };
+  })();
+
+  // =================== question reveals (slide 4) ===================
+  document.querySelectorAll('[data-reveal]').forEach(btn => {
+    const ans = btn.nextElementSibling;
+    btn.addEventListener('click', () => {
+      const show = ans.hidden;
+      ans.hidden = !show;
+      btn.textContent = show ? 'Hide answer' : 'Show answer';
+      if (show && M && M.animate && !reduced.matches) {
+        M.animate(ans, { opacity: [0, 1], transform: ['translateY(8px)', 'translateY(0px)'], filter: ['blur(4px)', 'blur(0px)'] },
+          { type: 'spring', duration: 0.45, bounce: 0 });
+      }
+    });
+  });
+
+  // =================== folding cube net (slide 6) ===================
+  {
+    const net = document.getElementById('net'), range = document.getElementById('fold'), out = document.getElementById('foldOut'), btn = document.getElementById('foldBtn');
+    let anim = null;
+    const set = v => { net.style.setProperty('--fold', v + 'deg'); range.value = Math.round(v); out.textContent = Math.round(v) + '°'; btn.textContent = v > 45 ? 'Unfold to the net' : 'Fold into a cube'; };
+    range.addEventListener('input', () => { if (anim) anim.stop(); set(+range.value); });
+    btn.addEventListener('click', () => {
+      if (anim) anim.stop();
+      const from = +range.value, to = from > 45 ? 0 : 90;
+      if (M && M.animate && !reduced.matches) {
+        const c = M.animate(from, to, { type: 'spring', duration: 0.9, bounce: 0.15, onUpdate: set });
+        anim = { stop: () => c.stop() };
+      } else set(to);
+    });
+    set(0);
   }
-  freshStrip();
-  requestAnimationFrame(frame);
+
+  // =================== start ===================
+  const drawings = [...document.querySelectorAll('.drawing')].map(makeDrawing);
+  function loop(now) {
+    orient.tick(now);
+    requestAnimationFrame(loop);
+  }
+  addEventListener('resize', layout);
+  layout();
+  const start = slides.findIndex(s => '#' + s.id === location.hash);
+  go(start < 0 ? 0 : start);
+  requestAnimationFrame(loop);
 })();
 </script>
 </body>
